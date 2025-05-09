@@ -1,0 +1,47 @@
+arguments: shakespeare 2 20
+Running English Analyzer Index: 
+TF-IDF score:
+1( score:5.490179)-->Michael_Drayton
+2( score:4.4510746)-->Addiscombe_Military_Seminary
+3( score:3.6767905)-->W._B._Yeats
+4( score:3.550027)-->Ben_Jonson
+5( score:3.2901993)-->George_Bernard_Shaw
+6( score:3.016653)-->Tsunami
+7( score:1.7712498)-->Romeo_and_Juliet
+Search Time (sec): 0.028
+LMJelinekMercer Similarity:
+1( score:10.563734)-->Michael Drayton - Wikipedia
+2( score:9.964243)-->Addiscombe Military Seminary - Wikipedia
+3( score:9.103517)-->W. B. Yeats - Wikipedia
+4( score:9.023783)-->Ben Jonson - Wikipedia
+5( score:8.817819)-->George Bernard Shaw - Wikipedia
+6( score:8.813929)-->Tsunami - Wikipedia
+7( score:7.9013605)-->Romeo and Juliet - Wikipedia
+Search Time (ms): 7
+LMDirichlet Similarity:
+1( score:7.492737)-->Michael Drayton - Wikipedia
+2( score:6.8379235)-->Addiscombe Military Seminary - Wikipedia
+3( score:6.625656)-->W. B. Yeats - Wikipedia
+4( score:6.5648584)-->Ben Jonson - Wikipedia
+5( score:6.4701385)-->George Bernard Shaw - Wikipedia
+6( score:6.2214956)-->Tsunami - Wikipedia
+7( score:5.5263896)-->Romeo and Juliet - Wikipedia
+Search Time (ms): 3
+BM25 Similarity:
+1( score:5.490179)-->Michael Drayton - Wikipedia
+2( score:4.4510746)-->Addiscombe Military Seminary - Wikipedia
+3( score:3.6767905)-->W. B. Yeats - Wikipedia
+4( score:3.550027)-->Ben Jonson - Wikipedia
+5( score:3.2901993)-->George Bernard Shaw - Wikipedia
+6( score:3.016653)-->Tsunami - Wikipedia
+7( score:1.7712498)-->Romeo and Juliet - Wikipedia
+Search Time (ms): 4
+Boolean Similarity:
+1( score:1.0)-->Addiscombe Military Seminary - Wikipedia
+2( score:1.0)-->Romeo and Juliet - Wikipedia
+3( score:1.0)-->Tsunami - Wikipedia
+4( score:1.0)-->Michael Drayton - Wikipedia
+5( score:1.0)-->Ben Jonson - Wikipedia
+6( score:1.0)-->W. B. Yeats - Wikipedia
+7( score:1.0)-->George Bernard Shaw - Wikipedia
+Search Time (ms): 4

@@ -1,0 +1,6 @@
+aiohttp
+beautifulsoup4
+redis
+boto3
+psutil
+requests

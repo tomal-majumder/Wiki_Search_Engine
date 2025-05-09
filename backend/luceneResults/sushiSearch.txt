@@ -1,0 +1,112 @@
+arguments: sushi 2 20
+Running English Analyzer Index: 
+TF-IDF score:
+1( score:9.828673)-->Sushi
+2( score:9.170557)-->YO!_Sushi
+3( score:4.9412403)-->California_roll
+4( score:4.8537087)-->Japanese_cuisine
+5( score:4.701931)-->Onigiri
+6( score:4.605486)-->Sashimi
+7( score:4.572886)-->Shrimp_and_prawn as food
+8( score:4.4844975)-->Odori_ebi
+9( score:4.4758925)-->Wasabi_(restaurant)
+10( score:4.3949823)-->Atlantic_bluefin_tuna
+11( score:4.3836718)-->Wasabi
+12( score:4.3836718)-->Nori
+13( score:4.2975264)-->Japanese_rice
+14( score:4.2246037)-->Hijiki
+15( score:4.2147017)-->Tempura
+16( score:4.0962825)-->Shiso
+17( score:4.0769324)-->Benihana
+18( score:4.048629)-->Wakame
+19( score:3.9931831)-->Shellfish
+20( score:3.9931831)-->Edible_seaweed
+Search Time (sec): 0.031
+LMJelinekMercer Similarity:
+1( score:21.484715)-->Sushi - Wikipedia
+2( score:21.177158)-->YO! Sushi - Wikipedia
+3( score:9.705238)-->Odori ebi - Wikipedia
+4( score:9.605162)-->Wasabi (restaurant) - Wikipedia
+5( score:9.525125)-->California roll - Wikipedia
+6( score:9.248515)-->Koni Store - Wikipedia
+7( score:9.025395)-->Onigiri - Wikipedia
+8( score:8.487819)-->Japanese cuisine - Wikipedia
+9( score:8.467776)-->Shrimp and prawn as food - Wikipedia
+10( score:8.378751)-->Sashimi - Wikipedia
+11( score:8.293158)-->Mirin - Wikipedia
+12( score:8.231042)-->Hijiki - Wikipedia
+13( score:8.180164)-->Wasabi - Wikipedia
+14( score:8.180164)-->Nori - Wikipedia
+15( score:8.106623)-->Kamaboko - Wikipedia
+16( score:7.96168)-->Japanese rice - Wikipedia
+17( score:7.8378267)-->Benihana - Wikipedia
+18( score:7.790218)-->Atlantic bluefin tuna - Wikipedia
+19( score:7.782499)-->Tempura - Wikipedia
+20( score:7.7748394)-->Wakame - Wikipedia
+Search Time (ms): 6
+LMDirichlet Similarity:
+1( score:9.955902)-->Sushi
+2( score:8.946575)-->YO!_Sushi
+3( score:6.0600715)-->Japanese_cuisine
+4( score:6.008607)-->California_roll
+5( score:5.3653173)-->Onigiri
+6( score:5.3101096)-->Sashimi
+7( score:5.206343)-->Shrimp_and_prawn_as_food
+8( score:5.096638)-->Atlantic_bluefin_tuna
+9( score:4.9198594)-->Wasabi
+10( score:4.9198594)-->Nori
+11( score:4.8648744)-->Odori_ebi
+12( score:4.8574667)-->Wasabi_(restaurant)
+13( score:4.839211)-->Japanese_rice
+14( score:4.764584)-->Tempura
+15( score:4.6621494)-->Shiso
+16( score:4.651443)-->Hijiki
+17( score:4.5380073)-->Benihana
+18( score:4.516786)-->Wakame
+19( score:4.4756494)-->Shellfish
+20( score:4.4756494)-->Edible_seaweed
+Search Time (ms): 4
+BM25 Similarity:
+1( score:9.828673)-->Sushi - Wikipedia
+2( score:9.170557)-->YO! Sushi - Wikipedia
+3( score:4.9412403)-->California roll - Wikipedia
+4( score:4.8537087)-->Japanese cuisine - Wikipedia
+5( score:4.701931)-->Onigiri - Wikipedia
+6( score:4.605486)-->Sashimi - Wikipedia
+7( score:4.572886)-->Shrimp and prawn as food - Wikipedia
+8( score:4.4844975)-->Odori ebi - Wikipedia
+9( score:4.4758925)-->Wasabi (restaurant) - Wikipedia
+10( score:4.3949823)-->Atlantic bluefin tuna - Wikipedia
+11( score:4.3836718)-->Wasabi - Wikipedia
+12( score:4.3836718)-->Nori - Wikipedia
+13( score:4.2975264)-->Japanese rice - Wikipedia
+14( score:4.2246037)-->Hijiki - Wikipedia
+15( score:4.2147017)-->Tempura - Wikipedia
+16( score:4.0962825)-->Shiso - Wikipedia
+17( score:4.0769324)-->Benihana - Wikipedia
+18( score:4.048629)-->Wakame - Wikipedia
+19( score:3.9931831)-->Shellfish - Wikipedia
+20( score:3.9931831)-->Edible seaweed - Wikipedia
+Search Time (ms): 4
+Boolean Similarity:
+1( score:2.0)-->Sushi - Wikipedia
+2( score:2.0)-->YO! Sushi - Wikipedia
+3( score:1.0)-->Mexican cuisine - Wikipedia
+4( score:1.0)-->Japanese diaspora - Wikipedia
+5( score:1.0)-->Rendang - Wikipedia
+6( score:1.0)-->Shiso - Wikipedia
+7( score:1.0)-->Globalization - Wikipedia
+8( score:1.0)-->Onigiri - Wikipedia
+9( score:1.0)-->California roll - Wikipedia
+10( score:1.0)-->Salmon - Wikipedia
+11( score:1.0)-->Sashimi - Wikipedia
+12( score:1.0)-->Rikidōzan - Wikipedia
+13( score:1.0)-->Sweet potato - Wikipedia
+14( score:1.0)-->Poetry - Wikipedia
+15( score:1.0)-->Green tea ice cream - Wikipedia
+16( score:1.0)-->Japanese language - Wikipedia
+17( score:1.0)-->Food industry - Wikipedia
+18( score:1.0)-->Hijiki - Wikipedia
+19( score:1.0)-->Sesame - Wikipedia
+20( score:1.0)-->Osaka - Wikipedia
+Search Time (ms): 7

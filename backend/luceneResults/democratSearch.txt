@@ -1,0 +1,112 @@
+arguments: democratic society 2 20
+Running English Analyzer Index: 
+TF-IDF score:
+1( score:3.3268533)-->Chicago Tribune - Wikipedia
+2( score:3.1447704)-->South Dakota - Wikipedia
+3( score:3.144402)-->Kåre Willoch - Wikipedia
+4( score:3.0330052)-->Beverly Hills, California - Wikipedia
+5( score:2.9831915)-->Lafcadio Hearn - Wikipedia
+6( score:2.9527178)-->Jim Ryun - Wikipedia
+7( score:2.9431283)-->Louisiana - Wikipedia
+8( score:2.8649216)-->Herbert Laming, Baron Laming - Wikipedia
+9( score:2.815415)-->Plurality voting - Wikipedia
+10( score:2.766734)-->Pearl of Great Price (Mormonism) - Wikipedia
+11( score:2.7354832)-->Multi-party system - Wikipedia
+12( score:2.6903136)-->2009 Norwegian parliamentary election - Wikipedia
+13( score:2.6750531)-->John Mitchell Jr. - Wikipedia
+14( score:2.6750531)-->Håkon Wium Lie - Wikipedia
+15( score:2.6639209)-->Indiana - Wikipedia
+16( score:2.6172357)-->Yamaguchi Prefecture - Wikipedia
+17( score:2.603801)-->Philadelphia - Wikipedia
+18( score:2.5990176)-->William Randolph Hearst - Wikipedia
+19( score:2.5618644)-->Conservative Party (Norway) - Wikipedia
+20( score:2.5289676)-->Brooklyn - Wikipedia
+Search Time (sec): 0.045
+LMJelinekMercer Similarity:
+1( score:7.483161)-->Herbert Laming, Baron Laming - Wikipedia
+2( score:7.419607)-->Kåre Willoch - Wikipedia
+3( score:7.2968745)-->Chicago Tribune - Wikipedia
+4( score:7.266233)-->Pearl of Great Price (Mormonism) - Wikipedia
+5( score:7.2032657)-->Multi-party system - Wikipedia
+6( score:7.098369)-->Jim Ryun - Wikipedia
+7( score:7.088121)-->John Mitchell Jr. - Wikipedia
+8( score:7.088121)-->Håkon Wium Lie - Wikipedia
+9( score:7.0690465)-->South Dakota - Wikipedia
+10( score:7.0657177)-->Beverly Hills, California - Wikipedia
+11( score:6.997229)-->Lafcadio Hearn - Wikipedia
+12( score:6.9848943)-->Yamaguchi Prefecture - Wikipedia
+13( score:6.8997564)-->Plurality voting - Wikipedia
+14( score:6.89135)-->Conservative Party (Norway) - Wikipedia
+15( score:6.8058267)-->Crispin Blunt - Wikipedia
+16( score:6.8058267)-->Liberal Christianity - Wikipedia
+17( score:6.8058267)-->New York Athletic Club - Wikipedia
+18( score:6.7833157)-->Louisiana - Wikipedia
+19( score:6.7341847)-->2009 Norwegian parliamentary election - Wikipedia
+20( score:6.5860376)-->Nottinghamshire - Wikipedia
+Search Time (ms): 7
+LMDirichlet Similarity:
+1( score:4.8388944)-->Chicago Tribune - Wikipedia
+2( score:4.6277356)-->South Dakota - Wikipedia
+3( score:4.4559855)-->Louisiana - Wikipedia
+4( score:4.446618)-->Kåre Willoch - Wikipedia
+5( score:4.430853)-->Beverly Hills, California - Wikipedia
+6( score:4.386215)-->Lafcadio Hearn - Wikipedia
+7( score:4.286597)-->Jim Ryun - Wikipedia
+8( score:4.1747875)-->Plurality voting - Wikipedia
+9( score:4.157505)-->Indiana - Wikipedia
+10( score:4.115866)-->Philadelphia - Wikipedia
+11( score:4.074232)-->2009 Norwegian parliamentary election - Wikipedia
+12( score:4.054823)-->William Randolph Hearst - Wikipedia
+13( score:4.0381317)-->Herbert Laming, Baron Laming - Wikipedia
+14( score:4.022188)-->Brooklyn - Wikipedia
+15( score:4.022188)-->Gender inequality - Wikipedia
+16( score:3.971625)-->Pearl of Great Price (Mormonism) - Wikipedia
+17( score:3.9504042)-->Multi-party system - Wikipedia
+18( score:3.9401402)-->Joseph Pulitzer - Wikipedia
+19( score:3.9367135)-->Guildford - Wikipedia
+20( score:3.9092672)-->John Mitchell Jr. - Wikipedia
+Search Time (ms): 8
+BM25 Similarity:
+1( score:3.3268533)-->Chicago Tribune - Wikipedia
+2( score:3.1447704)-->South Dakota - Wikipedia
+3( score:3.144402)-->Kåre Willoch - Wikipedia
+4( score:3.0330052)-->Beverly Hills, California - Wikipedia
+5( score:2.9831915)-->Lafcadio Hearn - Wikipedia
+6( score:2.9527178)-->Jim Ryun - Wikipedia
+7( score:2.9431283)-->Louisiana - Wikipedia
+8( score:2.8649216)-->Herbert Laming, Baron Laming - Wikipedia
+9( score:2.815415)-->Plurality voting - Wikipedia
+10( score:2.766734)-->Pearl of Great Price (Mormonism) - Wikipedia
+11( score:2.7354832)-->Multi-party system - Wikipedia
+12( score:2.6903136)-->2009 Norwegian parliamentary election - Wikipedia
+13( score:2.6750531)-->John Mitchell Jr. - Wikipedia
+14( score:2.6750531)-->Håkon Wium Lie - Wikipedia
+15( score:2.6639209)-->Indiana - Wikipedia
+16( score:2.6172357)-->Yamaguchi Prefecture - Wikipedia
+17( score:2.603801)-->Philadelphia - Wikipedia
+18( score:2.5990176)-->William Randolph Hearst - Wikipedia
+19( score:2.5618644)-->Conservative Party (Norway) - Wikipedia
+20( score:2.5289676)-->Brooklyn - Wikipedia
+Search Time (ms): 8
+Boolean Similarity:
+1( score:1.0)-->Supreme Court of the United States - Wikipedia
+2( score:1.0)-->Swedes - Wikipedia
+3( score:1.0)-->Sweden - Wikipedia
+4( score:1.0)-->Louisiana - Wikipedia
+5( score:1.0)-->Massachusetts - Wikipedia
+6( score:1.0)-->Mexico - Wikipedia
+7( score:1.0)-->Yellow journalism - Wikipedia
+8( score:1.0)-->Chicago Tribune - Wikipedia
+9( score:1.0)-->William Randolph Hearst - Wikipedia
+10( score:1.0)-->Early modern warfare - Wikipedia
+11( score:1.0)-->Khalifa Haftar - Wikipedia
+12( score:1.0)-->Bornholm - Wikipedia
+13( score:1.0)-->Latin America - Wikipedia
+14( score:1.0)-->Idealism - Wikipedia
+15( score:1.0)-->Chicago - Wikipedia
+16( score:1.0)-->Thomas Paine - Wikipedia
+17( score:1.0)-->Illinois - Wikipedia
+18( score:1.0)-->The New York Times - Wikipedia
+19( score:1.0)-->United Methodist Church - Wikipedia
+20( score:1.0)-->Socialism - Wikipedia
+Search Time (ms): 17
