@@ -9,10 +9,11 @@ const { response } = require('../app');
 const readFile = util.promisify(fs.readFile);
 const path = require('path');
 const internal = require('stream');
-
+var stemmer = require('./porter').stemmer
 const URI = "mongodb://127.0.0.1:27017";
 const stemedQueryFile = "output.txt";
 
+// for lemmatization
 async function stemQuery(query) {
     const outputFilePath = "output.txt";
     const cmd = `java -jar TestIR-1.0-SNAPSHOT-jar-with-dependencies.jar "${query}" "${outputFilePath}"`;
@@ -271,7 +272,10 @@ function BM25_score(query, docId, data, wordCountDoc) {
         //console.log(qf_i);
 
         bm25 = bm25 + Math.log((totalFiles - n_i + 0.5) / (n_i + 0.5)) * (((k1 + 1) * f_i) / (K + f_i)) * (((k2 + 1) * qf_i) / (k2 + qf_i));
-    }
+    }console.log(docToTfidfMapSorted);
+        //console.log(wordToDocMap);
+        // console.log(result.get('ucr').length)
+        // console.log(result.get('soccer').lengt
     return bm25;
 }
 

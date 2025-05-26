@@ -7,7 +7,7 @@ var cors = require('cors')
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
-var queryProcessorStemRouter = require('./routes/queryProcessorStem');
+var queryProcessorStemRouter = require('./routes/queryProcessor');
 
 var app = express();
 
