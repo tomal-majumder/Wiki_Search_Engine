@@ -42,7 +42,7 @@ exports.processQuery = async (req, res) => {
 
         await client.connect();
 
-        const [wordToDocMap, docToBm25MapSorted, invertedIndexList] = await getDocuments(client, stemmedWords);
+        const [wordToDocMap, docToBm25MapSorted, invertedIndexList] = await getDocuments(client, stemmedWords, scoringType);
         // invertedIndexList = indexList;
 
         [fullbodyDocsList, chunkedBodyDocsList] = await getResultDocuments(client, docToBm25MapSorted);

@@ -42,9 +42,9 @@ const fs = require('fs');
 //     return [wordToDocMap, docToTfidfMapSorted, invertedIndexList];
 // }
 
-async function getDocuments(client, stemmedWords) {
+async function getDocuments(client, stemmedWords, rankingMethod = 'tfidf') {
     const wordToDocMap = new Map();
-    const docToBm25Map = new Map();
+    const docToScoreMap = new Map();
     let invertedIndexList = [];
 
     // Constants for BM25
@@ -67,18 +67,25 @@ async function getDocuments(client, stemmedWords) {
             invertedIndexList.push(entry);
             const df = entry.docIdList.length;
 
-            const idf = Math.log((N - df + 0.5) / (df + 0.5) + 1);
+            // IDF for both TF-IDF and BM25
+            const idf = Math.log((N - df + 0.5) / (df + 0.5) + 1); // standard BM25 IDF
 
             for (const doc of entry.docIdList) {
                 const tf = doc.tf;
                 const dl = doc.doc_len;
+                let score = 0;
 
-                const numerator = tf * (k1 + 1);
-                const denominator = tf + k1 * (1 - b + b * (dl / avgdl));
-                const bm25Score = idf * (numerator / denominator);
+                if (rankingMethod === 'bm25') {
+                    const numerator = tf * (k1 + 1);
+                    const denominator = tf + k1 * (1 - b + b * (dl / avgdl));
+                    score = idf * (numerator / denominator);
+                } else {
+                    // Default: TF-IDF
+                    score = tf * Math.log(N / df);
+                }
 
-                const prevScore = docToBm25Map.get(doc.docId) || 0;
-                docToBm25Map.set(doc.docId, prevScore + bm25Score);
+                const prevScore = docToScoreMap.get(doc.docId) || 0;
+                docToScoreMap.set(doc.docId, prevScore + score);
 
                 docDataList.push(doc);
             }
@@ -87,9 +94,9 @@ async function getDocuments(client, stemmedWords) {
         wordToDocMap.set(curWord, docDataList);
     }
 
-    const docToBm25MapSorted = new Map([...docToBm25Map.entries()].sort((a, b) => b[1] - a[1]));
+    const docToScoreMapSorted = new Map([...docToScoreMap.entries()].sort((a, b) => b[1] - a[1]));
 
-    return [wordToDocMap, docToBm25MapSorted, invertedIndexList];
+    return [wordToDocMap, docToScoreMapSorted, invertedIndexList];
 }
 
 async function getResultDocuments(client, docToScoreMapSorted) {
