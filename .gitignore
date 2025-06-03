@@ -4,6 +4,7 @@ IndexData/
 node_modules/
 react-app/node_modules/
 react-app/package-lock.json
+react-app/public/images/
 
 # Python
 __pycache__/

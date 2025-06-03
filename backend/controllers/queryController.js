@@ -53,7 +53,7 @@ exports.processQuery = async (req, res) => {
         const imageResults = await getBase64Images(imageFileNames, baseImagePath);
 
         res.json({
-            imageResult: imageResults,
+            imageResult: imageFileNames,
             textResult: chunkedBodyDocsList,
             searchTime: parseHrtimeToSeconds(process.hrtime(startTime))
         });

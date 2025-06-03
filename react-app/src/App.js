@@ -225,11 +225,19 @@ class App extends React.Component {
                 </div>
               ))}
               {/* Show image results */}
-              {this.state.searchType === "IMAGE" ? this.state.imageResults.map(base64String =>
-                (<img className='mr-3 mt-3 ml-3' src={`data:image/png;base64,${base64String}`} alt="" width="150" height="100" />)
-              ) : (
-                <div></div>
-              )}
+              {this.state.searchType === "IMAGE" ? 
+                this.state.imageResults.map((filename, index) => (
+                  <img 
+                    key={index}
+                    className='mr-3 mt-3 ml-3' 
+                    src={`/images/${filename}.jpg`} 
+                    alt={`img-${index}`} 
+                    width="150" 
+                    height="100" 
+                  />
+                )) 
+                : <div></div>
+              }
             </Col>
           </Row>
 
