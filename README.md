@@ -45,6 +45,7 @@ cd crawler
 conda create -n crawler-env python=3.9
 conda activate crawler-env
 pip install -r requirements.txt
+conda install -c conda-forge redis
 
 # Start Redis server in another terminal
 redis-server
@@ -77,6 +78,7 @@ cd indexer
 pip install -r requirements.txt
 
 # Run Spark job (ensure Spark is configured)
+# Required: Spark 3.5.*, opendJDK-11
 spark-submit inverted_index.py ../crawler/storage/   --output ../IndexeData/  --format csv   --use-stemming
 ```
 
@@ -102,6 +104,10 @@ To insert the inverted_index output, run:
 python insertIndex.py
 ```
 
+To insert the metadata (total number of documents and average doc len for BM25 scoring) output, run:
+```bash
+python metaDataInsert.py
+```
 ---
 
 ### 3. Backend
@@ -138,8 +144,10 @@ bash distributed_crawler.sh 3 15000
 This will:
 - Start Redis
 - Reset state
-- Queue seed URLs
+- Queue seed URLs (configured inside the `distributed_crawler.sh`)
 - Launch N worker jobs with Slurm
+
+Here: number of workers is `3` and max page limit is `15000`.
 
 ### Indexer
 Submit `cluster/spark_cluster.sh`:
