@@ -106,9 +106,21 @@ async function getResultDocuments(client, docToScoreMapSorted) {
         const docId = key;
         const docData = await client.db('ir').collection('wikipedia').find({ 'file_id': docId }).toArray();
         //console.log(docData);
-        const chunkedDocData = cutTheArticle(docData);
+        //const chunkedDocData = cutTheArticle(docData);
+        chunckedData = []
+        for (let i = 0; i < docData.length; i++) {
+            let chunkedElement = {
+                "_id": docData[i]._id,
+                "docId": docData[i].docId,
+                "chunkedBody": docData[i].body,
+                "filename": docData[i].filename,
+                "url": docData[i].url,
+            }
+            chunckedData.push(chunkedElement);
+        }
+
         docDataList = docDataList.concat(docData);
-        chunkedDataList = chunkedDataList.concat(chunkedDocData);
+        chunkedDataList = chunkedDataList.concat(chunckedData);
         i++;
         if (i == 20) {
             break;

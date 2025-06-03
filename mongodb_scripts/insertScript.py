@@ -4,6 +4,24 @@ import json
 import base64
 from pymongo import MongoClient
 
+def cut_the_article(body):
+    chunked_string = ""
+    counter = 0
+
+    # Process up to the first 3 lines of the body (or fewer if body is shorter)
+    for i in range(min(3, len(body))):
+        line = body[i]
+        for char in line:
+            chunked_string += char
+            if char == ".":
+                counter += 1
+            if counter == 2:
+                break
+        if counter == 2:
+            break
+
+    return chunked_string.strip()
+
 # Connect with MongoDB
 mongo_client = MongoClient("mongodb://127.0.0.1:27017")
 print("Connection Successful")
@@ -15,8 +33,8 @@ if "wikipedia" in db.list_collection_names():
     print("Dropped existing 'wikipedia' collection")
     
 # Input file directories - adjust these paths to match your environment
-text_dir_path = "/home/tmaju002/Desktop/Workspace/Projects/Wiki_Search_Engine/Crawler/storage/*.txt"
-image_dir = "/home/tmaju002/Desktop/Workspace/Projects/Wiki_Search_Engine/Crawler/storage/images"
+text_dir_path = "/home/tmaju002/Desktop/Workspace/github/Wiki_Search_Engine/CrawledData/storage/*.txt"
+image_dir = "/home/tmaju002/Desktop/Workspace/github/Wiki_Search_Engine/CrawledData/storage/images"
 
 # Get all text files
 file_list = glob.glob(text_dir_path)
@@ -34,7 +52,7 @@ for file_path in file_list:
             
             # Rest of the content is the body
             body = all_lines[1:]
-            
+            chunked_body = cut_the_article(body)
             # Get filename components
             filename = os.path.basename(file_path)
             file_id = filename.split(".txt")[0]  # This is the hash code
@@ -65,7 +83,7 @@ for file_path in file_list:
             # Insert data
             json_data = {
                 "docId": title,
-                "body": body, 
+                "body": chunked_body, 
                 "filename": filename,
                 "file_id": file_id,
                 "url": url,

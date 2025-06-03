@@ -1,2 +1,24 @@
 CrawledData/
 IndexData/
+# Node
+node_modules/
+react-app/node_modules/
+react-app/package-lock.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Redis
+dump.rdb
+
+# Output files
+*.log
+*.txt
+Crawler/storage/
+Indexer/wiki_index/
+
+# OS & IDE junk
+.DS_Store
+.env

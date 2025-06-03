@@ -11,7 +11,7 @@ print("Connection Successful")
 db = mongo_client.ir
 
 # File path - change it according to your machine
-file_path = "/home/tmaju002/Desktop/Workspace/Projects/Wiki_Search_Engine/IndexData/inverted_index.csv"
+file_path = "/home/tmaju002/Desktop/Workspace/github/Wiki_Search_Engine/Indexer/wiki_index/part-00000-2d619c67-49f7-43ab-96a6-92abf40252aa-c000.csv"
 
 # Check if the collection already exists and drop it if needed
 if "invertedIndex" in db.list_collection_names():

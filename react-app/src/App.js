@@ -134,12 +134,12 @@ class App extends React.Component {
     });
   }
 
-  setOptions = (option) => {
-    console.log(option);
-    this.setState({
-      optionName: option
-    })
-  }
+  // setOptions = (option) => {
+  //   console.log(option);
+  //   this.setState({
+  //     optionName: option
+  //   })
+  // }
 
   componentDidMount() {
     // this.getPostCountVsLocationSortedData();
@@ -165,14 +165,14 @@ class App extends React.Component {
 
         <Container className="p-3">
           <Row>
-            <Col lg="2">
+            {/* <Col lg="2">
               <div>
                 <select id="options" onChange = {event => this.setOptions(event.target.value)}>
                   <option value="hadoop">Hadoop</option>
                   <option value="lucene">Lucene</option>
                 </select>
               </div>
-            </Col>
+            </Col> */}
             <Col lg="7">
               <div className="search">
                 <div className="form-group">

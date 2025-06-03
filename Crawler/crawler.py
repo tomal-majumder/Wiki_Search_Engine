@@ -71,14 +71,16 @@ class DistributedCrawler:
         self.active_workers_key = "crawler:active_workers"
         self.stats_key = "crawler:stats"
         self.global_counter_key = "crawler:global_page_count"  # Add global counter key
-        
+        self.unique_titles_key = "crawler:unique_titles_count"
+
         # Initialize worker statistics
         self.stats = {
             "pages_crawled": 0,
             "urls_found": 0,
             "start_time": time.time(),
             "errors": 0,
-            "memory_usage": []  # Track memory usage over time
+            "memory_usage": [],  # Track memory usage over time
+            "unique_pages_stored": 0,  # Track unique pages stored
         }
         
         # Set up signal handlers for graceful shutdown
@@ -128,11 +130,12 @@ class DistributedCrawler:
         """Fetch a URL and return the page content"""
         # First check if we've hit the global page limit
         if self.max_page_limit:
-            current_count = int(self.redis_client.get(self.global_counter_key) or 0)
+            current_count = int(self.redis_client.get(self.unique_titles_key) or 0)
             if current_count >= self.max_page_limit:
-                logger.info(f"Global page limit of {self.max_page_limit} reached. Stopping.")
+                logger.info(f"Unique page storage limit of {self.max_page_limit} reached. Stopping.")
                 self.shutdown(None, None)
                 return None
+
         
         start_time = time.time()
         try:
@@ -183,7 +186,7 @@ class DistributedCrawler:
                 self.stats["pages_crawled"] += 1
                 
                 # Increment global counter atomically
-                self.redis_client.incr(self.global_counter_key)
+                #self.redis_client.incr(self.global_counter_key)
                 
                 # Check if we've hit the global page limit after incrementing
                 if self.max_page_limit:
@@ -221,44 +224,9 @@ class DistributedCrawler:
         self.redis_client.expire(robots_cache_key, 3600)  # Cache for 1 hour
         return True
 
-    # async def parse_links(self, job: CrawlJob, html: str) -> List[str]:
-    #     """Extract links from HTML content"""
-    #     if job.depth >= self.max_depth:
-    #         return []
-            
-    #     try:
-    #         soup = BeautifulSoup(html, 'html.parser')
-    #         base_url = job.url
-    #         links = []
-            
-    #         for link in soup.find_all('a', href=True):
-    #             href = link['href']
-    #             if not href or href.startswith('#'):
-    #                 continue
-                    
-    #             # Normalize the URL
-    #             full_url = urljoin(base_url, href)
-    #             parsed = urlparse(full_url)
-                
-    #             # Skip non-HTTP(S) URLs
-    #             if parsed.scheme not in ('http', 'https'):
-    #                 continue
-                    
-    #             # Check if the domain is allowed
-    #             if self.allowed_domains and parsed.netloc not in self.allowed_domains:
-    #                 continue
-                    
-    #             links.append(full_url)
-                
-    #         self.stats["urls_found"] += len(links)
-    #         return links
-            
-    #     except Exception as e:
-    #         logger.error(f"Error parsing links from {job.url}: {str(e)}")
-    #         return []
     async def parse_links(self, job: CrawlJob, html: str) -> List[str]:
         """Extract links from HTML content"""
-        if job.depth >= self.max_depth:
+        if job.depth > self.max_depth:
             return []
             
         try:
@@ -323,41 +291,6 @@ class DistributedCrawler:
                 )
                 await self.queue_job(new_job)
 
-    # async def store_result(self, result: Dict[str, Any]):
-    #     """Store the crawling result"""
-    #     # Remove HTML content to save memory in Redis
-    #     result_to_store = result.copy()
-    #     html_content = result_to_store.pop("html", "")
-        
-    #     # Save metadata to Redis
-    #     url_hash = hashlib.md5(result["url"].encode()).hexdigest()
-    #     self.redis_client.hset(f"crawler:results:{url_hash}", mapping=result_to_store)
-        
-    #     # Store full content to S3 if configured
-    #     if self.s3_bucket:
-    #         try:
-    #             s3 = boto3.client('s3')
-    #             key = f"crawler/pages/{url_hash}.html"
-    #             s3.put_object(
-    #                 Bucket=self.s3_bucket,
-    #                 Key=key,
-    #                 Body=html_content,
-    #                 ContentType='text/html'
-    #             )
-    #             logger.debug(f"Stored content for {result['url']} in S3")
-    #         except ClientError as e:
-    #             logger.error(f"Failed to store content in S3: {str(e)}")
-    #     else:
-    #         # If S3 is not configured, save to local disk
-    #         # Use the URL hash as the filename
-    #         url_hash = hashlib.md5(result["url"].encode()).hexdigest()
-    #         # Save HTML content to local disk
-    #         # Ensure the directory exists
-    #         os.makedirs("storage", exist_ok=True)
-    #         # Save HTML content to local disk
-    #         with open(f"storage/{url_hash}.html", "w", encoding="utf-8") as f:
-    #             f.write(html_content)
-    #         logger.info(f"Saved page locally: storage/{url_hash}.html")
     
     async def store_result(self, result: Dict[str, Any]):
         """Store the crawling result with extracted text content only"""
@@ -373,6 +306,20 @@ class DistributedCrawler:
             # Extract page title
             title = soup.title.string if soup.title else "No title"
             title = title.strip()
+            # Normalize title for deduplication
+            # Remove trailing "- Wikipedia" and normalize
+            normalized_title = re.sub(r'\s*-\s*wikipedia$', '', title, flags=re.IGNORECASE).strip().lower()
+            title_hash = hashlib.md5(normalized_title.encode()).hexdigest()
+            title_key = f"crawler:title_hash:{title_hash}"
+
+            # Atomically claim title across all workers
+            claimed = self.redis_client.set(title_key, "1", nx=True)
+            if not claimed:
+                logger.info(f"Duplicate title detected: '{title}' — skipping storage")
+                return  # Stop here to avoid duplicate saving
+            # Title was unique → increment the unique pages counter
+            self.redis_client.incr(self.unique_titles_key)
+            self.stats["unique_pages_stored"] += 1
 
             url_hash = hashlib.md5(result["url"].encode()).hexdigest()
             img_count = 0
@@ -412,37 +359,7 @@ class DistributedCrawler:
                 except Exception as e:
                     logger.error(f"Error downloading image {img_url}: {str(e)}")
                     continue
-                    
-            # # First, let's log ALL image tags on the page for debugging
-            # logger.info(f"Found {len(soup.find_all('img'))} total img tags on page {result['url']}")
-            
-            # # Debug: Find and log all images with src attributes
-            # all_images = soup.find_all('img', src=True)
-            # logger.info(f"Found {len(all_images)} img tags with src attributes")
-            
-            # # Write all image sources to a debug file
-            # debug_file = f"storage/debug/{url_hash}-all-images.txt"
-            # with open(debug_file, "w", encoding="utf-8") as f:
-            #     f.write(f"All image sources from {result['url']}\n")
-            #     f.write(f"Page title: {title}\n")
-            #     f.write("="*50 + "\n\n")
-            #     for idx, img in enumerate(all_images):
-            #         f.write(f"{idx+1}. {img['src']}\n")
-            
-            # # Now find specifically jpg images with the regex
-            # jpg_images = soup.find_all('img', {'src': re.compile('.jpg|.jpeg', re.IGNORECASE)})
-            # logger.info(f"Found {len(jpg_images)} img tags with JPG sources")
-            
-            # # Write jpg image sources to a debug file
-            # debug_jpg_file = f"storage/debug/{url_hash}-jpg-images.txt"
-            # with open(debug_jpg_file, "w", encoding="utf-8") as f:
-            #     f.write(f"JPG image sources from {result['url']}\n")
-            #     f.write(f"Page title: {title}\n")
-            #     f.write("="*50 + "\n\n")
-            #     for idx, img in enumerate(jpg_images):
-            #         f.write(f"{idx+1}. {img['src']}\n")
-            
-            # Remove unwanted elements (common in Wikipedia)
+            # Remove unwanted elements from the soup
             for element in soup.select('.mw-editsection, .navbox, #mw-navigation, #footer, .sidebar, .infobox, script, style, .reference, .references'):
                 if element:
                     element.decompose()
@@ -485,11 +402,7 @@ class DistributedCrawler:
             
             # Save the content with title and URL
             with open(filename, "w", encoding="utf-8") as f:
-                #f.write(f"URL: {result['url']}\n")
                 f.write(f"Title: {title}\n")
-                #f.write(f"Crawled: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-                #f.write("\n" + "="*50 + "\n\n")
-                #f.write("CONTENT:\n\n")
                 f.write(extracted_content)
                 
             logger.info(f"Saved text content for '{title}' locally: {filename}")
@@ -642,6 +555,7 @@ class CrawlerManager:
         self.visited_key = "crawler:visited"
         self.active_workers_key = "crawler:active_workers"
         self.stats_key = "crawler:stats"
+        self.title_dedup_prefix = "crawler:title_hash:"
 
     def clear_queue(self):
         """Clear the job queue"""
@@ -655,12 +569,17 @@ class CrawlerManager:
             self.queue_key,
             self.visited_key,
             self.stats_key,
-            "crawler:global_page_count"  # Also reset the global page counter
+            "crawler:unique_titles_count"  # Also reset the global page counter
         ]
         
         for key in keys_to_delete:
             self.redis_client.delete(key)
-            
+        # Clear title hash dedup keys
+        title_pattern = "crawler:title_hash:*"
+        for key in self.redis_client.scan_iter(title_pattern):
+            self.redis_client.delete(key)
+        logger.info("Cleared title-based deduplication keys")
+    
         # Delete all worker heartbeats
         for key in self.redis_client.scan_iter("crawler:worker_heartbeat:*"):
             self.redis_client.delete(key)

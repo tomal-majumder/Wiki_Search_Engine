@@ -1,265 +1,155 @@
 #!/usr/bin/env python3
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import input_file_name, explode, col, lit, regexp_replace, udf
 from pyspark.sql.types import ArrayType, StringType
-from pyspark.ml.feature import Tokenizer, StopWordsRemover
-import re
-import os
-import sys
-import argparse
+import os, re, argparse
 
-# Check if NLTK is available for stemming
-try:
-    import nltk
-    from nltk.stem import PorterStemmer
-    nltk_available = True
-except ImportError:
-    nltk_available = False
+# --- Import NLP tools ---
+import nltk
+nltk.download('punkt', quiet=True)
+from nltk.stem import PorterStemmer
+import spacy
+nlp = spacy.load("en_core_web_sm")
+
+
+# --- TEXT CLEANING & TOKENIZATION ---
 
 def clean_text(text):
+    """Lowercase and remove non-alphanumeric characters except spaces."""
     if text is None:
         return ""
-    # Fixed regex to properly handle whitespace
     return re.sub(r'[^a-zA-Z0-9\s]', '', text.lower())
 
-# def apply_stemming(tokens):
-#     """Apply Porter stemming to a list of tokens."""
-#     if not tokens:
-#         return []
-    
-#     stemmer = PorterStemmer()
-#     return [stemmer.stem(token) for token in tokens if token]
-def apply_stemming(tokens):
-    """Apply Porter stemming to a list of tokens."""
-    if not tokens:
+def extract_meaningful_tokens(text, use_stemming=True):
+    """
+    Extract meaningful tokens from text with dual indexing:
+    - Preserve named entities (PERSON, ORG, GPE) as complete phrases
+    - ALSO index individual words from those entities
+    - Apply Porter stemming to remaining non-entity tokens
+    - Filter out junk long numbers (e.g., '00000') but keep short ones (e.g., '2021')
+    """
+    if not text:
         return []
     
-    try:
-        # Import inside function to ensure it's available
-        from nltk.stem import PorterStemmer
-        stemmer = PorterStemmer()
-        return [stemmer.stem(token) for token in tokens if token]
-    except (ImportError, NameError):
-        # If stemming fails, return original tokens
-        print("Warning: Porter stemmer not available, returning original tokens")
-        return [token for token in tokens if token]
-def ensure_nltk():
-    global nltk_available
-    try:
-        import nltk
-        from nltk.stem import PorterStemmer
-        try:
-            # Test if punkt is already downloaded
-            nltk.data.find('tokenizers/punkt')
-        except LookupError:
-            nltk.download('punkt', quiet=True)
-        nltk_available = True
-        return True
-    except ImportError:
-        nltk_available = False
-        return False
-# Add this function after your main() function in inverted_index.py
-def print_cluster_info(spark):
-    """Print diagnostic information about the Spark cluster."""
-    print("\n===== SPARK CLUSTER INFORMATION =====")
-    try:
-        sc = spark.sparkContext
+    doc = nlp(text)
+    stemmer = PorterStemmer()
+    tokens = []
+    entity_words = set()  # Track words that are part of entities
+
+    # 1. Extract named entities and their components
+    for ent in doc.ents:
+        if ent.label_ in {"PERSON", "ORG", "GPE"}:
+            full_entity = ent.text.strip().lower()
+            
+            # Add the complete entity
+            tokens.append(full_entity)
+            
+            # Add individual words from the entity
+            words_in_entity = full_entity.split()
+            for word in words_in_entity:
+                clean_word = re.sub(r'[^a-zA-Z0-9]', '', word)
+                if len(clean_word) > 1:  # Skip single characters
+                    tokens.append(clean_word)
+                    entity_words.add(clean_word)  # Track to avoid double-processing
+
+    # 2. Extract remaining tokens (skip ones already processed as entity components)
+    for token in doc:
+        word = token.text.strip().lower()
+        clean_word = re.sub(r'[^a-zA-Z0-9]', '', word)
         
-        # Get cluster information
-        app_id = sc.applicationId
-        ui_url = sc.uiWebUrl
-        
-        print(f"Application ID: {app_id}")
-        print(f"Web UI: {ui_url}")
-        
-        # Get executor information
-        executor_count = sc._jsc.sc().getExecutorMemoryStatus().size() - 1  # -1 to exclude driver
-        print(f"Number of executors: {executor_count}")
-        
-        # Print executor details
-        executors = sc._jsc.sc().getExecutorMemoryStatus().keySet().toArray()
-        print("Executor hosts:")
-        for executor in executors:
-            print(f"  - {executor}")
-        
-        # Get Spark configuration
-        print("\nSpark Configuration:")
-        print(f"  Master: {sc.master}")
-        print(f"  Deployment mode: {sc.deployMode}")
-        print(f"  Default parallelism: {sc.defaultParallelism}")
-        
-        # Test parallel execution
-        print("\nTesting parallel execution...")
-        nodes = sc.parallelize(range(100), 10).mapPartitions(lambda _: [sc._jvm.java.net.InetAddress.getLocalHost().getHostName()]).distinct().collect()
-        print(f"Nodes executing tasks: {nodes}")
-        print(f"Number of unique nodes: {len(nodes)}")
-        
-    except Exception as e:
-        print(f"Error getting cluster info: {str(e)}")
-        import traceback
-        traceback.print_exc()
-    
-    print("====================================\n")
-    
+        if (not clean_word or clean_word in entity_words or 
+            token.is_punct or token.is_space or token.is_stop):
+            continue
+            
+        if clean_word.isdigit() and len(clean_word) > 4:
+            continue  # remove junky numeric tokens
+            
+        # Apply stemming to non-entity words
+        processed_word = stemmer.stem(clean_word) if use_stemming else clean_word
+        tokens.append(processed_word)
+
+    return tokens
+
+
+# --- SPARK UDF BUILDER ---
+
+def build_udfs(use_stemming):
+    @udf(ArrayType(StringType()))
+    def preprocess_udf(text):
+        cleaned = clean_text(text)
+        return extract_meaningful_tokens(cleaned, use_stemming)
+    return preprocess_udf
+
+
+# --- MAIN SPARK PIPELINE ---
+
 def main():
-    global nltk_available
-
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Create an inverted index using Spark')
-    parser.add_argument('input_path', help='Path to the text files directory')
-    parser.add_argument('--output', default='index_output', help='Output directory for the index')
-    parser.add_argument('--format', default='parquet', choices=['parquet', 'csv', 'json', 'text'], 
-                        help='Output format (parquet, csv, json, or text)')
-    parser.add_argument('--use-stemming', action='store_true', help='Apply Porter stemming to tokens')
+    parser = argparse.ArgumentParser(description='Create an inverted index with dual NER indexing and stemming')
+    parser.add_argument('input_path', help='Directory containing .txt files')
+    parser.add_argument('--output', default='index_output', help='Output directory')
+    parser.add_argument('--use-stemming', action='store_true', help='Apply Porter stemming to non-proper nouns')
+    parser.add_argument('--format', default='parquet', choices=['parquet', 'csv', 'json', 'text'], help='Output format')
+    parser.add_argument('--show-stats', action='store_true', help='Show detailed indexing statistics')
     args = parser.parse_args()
-    
-    input_path = args.input_path
-    output_path = os.path.join(os.getcwd(), args.output)
-    use_stemming = args.use_stemming
-    output_format = args.format
-    
-    print(f"Starting inverted index creation on {input_path}")
-    print(f"Output will be saved to {output_path} in {output_format} format")
-    print(f"Stemming enabled: {use_stemming}")
-    
 
+    spark = SparkSession.builder.appName("InvertedIndexDualNER").getOrCreate()
+    preprocess = build_udfs(args.use_stemming)
+
+    # Step 1: Read files and extract filename
+    df = spark.read.text(args.input_path).withColumn("filename", input_file_name())
+    df = df.withColumn("tokens", preprocess(col("value")))
+    df = df.withColumn("filename", regexp_replace(col("filename"), "^.*/", ""))
+
+    # Step 2: Explode and clean tokens
+    words_df = df.select("filename", explode(col("tokens")).alias("term")) \
+                 .filter((col("term").isNotNull()) & (col("term") != ""))
+
+    # Step 3: TF, DF, Doc Length
+    tf_df = words_df.groupBy("term", "filename").count().withColumnRenamed("count", "tf")
+    doc_len_df = words_df.groupBy("filename").count().withColumnRenamed("count", "doc_len")
+    df_df = words_df.distinct().groupBy("term").count().withColumnRenamed("count", "df")
+    total_docs = df.select("filename").distinct().count()
+
+    # Step 4: Join and compute TF-IDF
+    indexed_df = tf_df.join(doc_len_df, "filename").join(df_df, "term") \
+                      .withColumn("tfidf", col("tf") * (lit(total_docs) / col("df"))) \
+                      .select("term", "filename", "tf", "df", "doc_len", "tfidf")
+
+    # Step 5: Write output
+    if args.format == "parquet":
+        indexed_df.write.mode("overwrite").parquet(args.output)
+    elif args.format == "csv":
+        indexed_df.coalesce(1).write.mode("overwrite").option("header", "true").csv(args.output)
+    elif args.format == "json":
+        indexed_df.coalesce(1).write.mode("overwrite").json(args.output)
+    elif args.format == "text":
+        indexed_df.coalesce(1).write.mode("overwrite").option("header", "true") \
+                  .csv(f"{args.output}_tmp", sep="\t")
+        import glob, shutil
+        os.makedirs(args.output, exist_ok=True)
+        part_file = glob.glob(f"{args.output}_tmp/part-*")[0]
+        os.rename(part_file, f"{args.output}/inverted_index.txt")
+        shutil.rmtree(f"{args.output}_tmp")
+
+    # Step 6: Show statistics
+    unique_terms = df_df.count()
+    print(f"✅ Index created at {args.output}")
+    print(f"📄 Total documents: {total_docs}")
+    print(f"🧠 Unique terms: {unique_terms}")
     
-    # If stemming is requested but still not available, disable it
-    if use_stemming and not nltk_available:
-        print("Stemming will be disabled due to missing dependencies.")
-        use_stemming = False
-    
-    # Create Spark session with more memory and tuned configuration
-    spark = SparkSession.builder \
-        .appName("InvertedIndex") \
-        .config("spark.executor.memory", "4g") \
-        .config("spark.driver.memory", "4g") \
-        .config("spark.sql.shuffle.partitions", 12) \
-        .config("spark.default.parallelism", 12) \
-        .getOrCreate()
-    
-    # Check if input path exists
-    if not os.path.exists(input_path):
-        print(f"Error: Input path {input_path} does not exist")
-        spark.stop()
-        return
-    
-    # Get file list to verify we have data
-    files = os.listdir(input_path)
-    print(f"Found {len(files)} files in input directory")
-    
-    try:
-        print("Reading text files...")
-        # Read all text files with explicit schema to avoid inference issues
-        df = spark.read.text(input_path).withColumn("filename", input_file_name())
+    if args.show_stats:
+        print("\n📊 Detailed Statistics:")
+        print(f"   • Total term-document pairs: {tf_df.count()}")
+        print(f"   • Average terms per document: {words_df.count() / total_docs:.1f}")
         
-        # Print schema and sample data for debugging
-        print("Schema after reading files:")
-        df.printSchema()
-        print("Sample data:")
-        df.show(5, truncate=False)
-        
-        # Apply text cleaning function
-        print("Cleaning text...")
-        clean_udf = spark.udf.register("clean_text", clean_text)
-        df = df.withColumn("cleaned", clean_udf(df['value']))
-        
-        # Tokenize and remove stop words
-        print("Tokenizing and removing stop words...")
-        tokenizer = Tokenizer(inputCol="cleaned", outputCol="words")
-        remover = StopWordsRemover(inputCol="words", outputCol="filtered")
-        df = tokenizer.transform(df)
-        df = remover.transform(df)
-        
-        if use_stemming:
-            print("Applying Porter stemming...")
-            try:
-                # Ensure NLTK is available before attempting stemming
-                if not nltk_available and not ensure_nltk():
-                    print("NLTK still not available, skipping stemming")
-                    token_col = "filtered"
-                else:
-                    stemming_udf = udf(apply_stemming, ArrayType(StringType()))
-                    df = df.withColumn("stemmed", stemming_udf(col("filtered")))
-                    token_col = "stemmed"
-            except Exception as e:
-                print(f"Error applying stemming: {str(e)}")
-                print("Falling back to non-stemmed tokens")
-                token_col = "filtered"
-        
-        # Extract filename from full path to make output more readable
-        df = df.withColumn("filename", regexp_replace(df["filename"], "^.*/", ""))
-        
-        # Count documents for calculating IDF
-        print("Counting documents...")
-        total_docs = df.select("filename").distinct().count()
-        print(f"Total unique documents: {total_docs}")
-        
-        # Explode tokens and calculate term frequencies
-        print(f"Calculating term frequencies using {token_col} column...")
-        words_df = df.select("filename", explode(col(token_col)).alias("term"))
-        words_df = words_df.filter(col("term").isNotNull() & (col("term") != ""))
-        
-        print("Calculating document frequencies...")
-        tf_df = words_df.groupBy("term", "filename").count().withColumnRenamed("count", "tf")
-        df_doc_len = words_df.groupBy("filename").count().withColumnRenamed("count", "doc_len")
-        df_df = words_df.distinct().groupBy("term").count().withColumnRenamed("count", "df")
-        
-        # Join dataframes to calculate TF-IDF
-        print("Joining dataframes and calculating TF-IDF...")
-        joined_df = tf_df.join(df_doc_len, "filename").join(df_df, "term")
-        indexed_df = joined_df.withColumn("tfidf", 
-                                        col("tf") * (lit(total_docs)/col("df"))) \
-                            .select("term", "filename", "tf", "df", "doc_len", "tfidf")
-        
-        # Save output in the specified format
-        print(f"Writing results to {output_path} in {output_format} format...")
-        
-        if output_format == 'parquet':
-            indexed_df.write.mode("overwrite").parquet(output_path)
-        elif output_format == 'csv':
-            indexed_df.write.mode("overwrite").option("header", "true").csv(output_path)
-        elif output_format == 'json':
-            indexed_df.write.mode("overwrite").json(output_path)
-        elif output_format == 'text':
-            # For text format, save as a single text file for easier reading
-            indexed_df.coalesce(1).write.mode("overwrite").format("csv") \
-                      .option("header", "true").option("delimiter", "\t") \
-                      .save(f"{output_path}_tmp")
-            
-            # Rename the part file to a more readable name
-            import glob
-            part_file = glob.glob(f"{output_path}_tmp/part-*")[0]
-            os.makedirs(output_path, exist_ok=True)
-            os.rename(part_file, f"{output_path}/inverted_index.txt")
-            
-            # Clean up temp directory
-            import shutil
-            shutil.rmtree(f"{output_path}_tmp")
-        
-        # Write a summary file with metadata
-        summary_path = os.path.join(output_path, "_SUMMARY.txt")
-        with open(summary_path, 'w') as f:
-            f.write(f"Index created at: {output_path}\n")
-            f.write(f"Source data: {input_path}\n")
-            f.write(f"Stemming used: {use_stemming}\n")
-            f.write(f"Total documents: {total_docs}\n")
-            f.write(f"Total unique terms: {df_df.count()}\n")
-            
-        # Show some statistics
-        print("Index statistics:")
-        print(f"Total unique terms: {df_df.count()}")
-        print(f"Total document-term pairs: {indexed_df.count()}")
-        
-        print("Job completed successfully!")
-    
-    except Exception as e:
-        print(f"Error during processing: {str(e)}")
-        import traceback
-        traceback.print_exc()
-    
-    finally:
-        spark.stop()
+        # Show sample of multi-word entities vs single words
+        sample_terms = indexed_df.select("term").distinct().limit(20).collect()
+        multi_word_terms = [row.term for row in sample_terms if ' ' in row.term]
+        if multi_word_terms:
+            print(f"   • Sample multi-word entities: {multi_word_terms[:5]}")
+
+    spark.stop()
 
 if __name__ == "__main__":
     main()

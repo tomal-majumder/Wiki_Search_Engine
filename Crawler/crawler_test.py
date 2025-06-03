@@ -7,6 +7,7 @@ It collects metrics on throughput, memory usage, and fault tolerance.
 """
 
 import asyncio
+import traceback
 import argparse
 import time
 import subprocess
@@ -470,4 +471,8 @@ async def main():
         )
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print("❌ Unhandled Exception:")
+        traceback.print_exc()
