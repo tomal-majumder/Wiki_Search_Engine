@@ -4,14 +4,30 @@ import json
 from pymongo import MongoClient
 from collections import defaultdict
 
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+
+uri = "mongodb+srv://tmaju002:iqnT2P1pmChIIOtr@cluster0.duieh6r.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
+# Create a new client and connect to the server
+client = MongoClient(uri, server_api=ServerApi('1'))
+
+# Send a ping to confirm a successful connection
+try:
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
+    print("Failed to connect to MongoDB.")
+
 # Connect with MongoDB
-mongo_client = MongoClient("mongodb://127.0.0.1:27017")
-print("Connection Successful")
+# mongo_client = MongoClient("mongodb://127.0.0.1:27017")
+# print("Connection Successful")
 # Create the database named "ir"
-db = mongo_client.ir
+db = client.ir
 
 # File path - change it according to your machine
-file_path = "/home/tmaju002/Desktop/Workspace/github/Wiki_Search_Engine/Indexer/wiki_index/part-00000-2d619c67-49f7-43ab-96a6-92abf40252aa-c000.csv"
+file_path = "/Users/tomal/Desktop/Masters/Projects/Wiki_Search_Engine/IndexData/inverted_index.csv"
 
 # Check if the collection already exists and drop it if needed
 if "invertedIndex" in db.list_collection_names():
@@ -95,4 +111,4 @@ else:
     print(f"File not found: {file_path}")
 
 print("Processing complete")
-mongo_client.close()
+client.close()

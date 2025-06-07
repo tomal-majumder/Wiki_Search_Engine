@@ -20,4 +20,3 @@ for db_name in databases:
         count = coll.count_documents({})
         stats = db.command("collstats", coll_name)
         print(f"    - {coll_name}: {count} documents, {stats['size'] / 1024:.2f} KB")
-

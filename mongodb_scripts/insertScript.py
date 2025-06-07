@@ -3,7 +3,8 @@ import os
 import json
 import base64
 from pymongo import MongoClient
-
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
 def cut_the_article(body):
     chunked_string = ""
     counter = 0
@@ -21,9 +22,19 @@ def cut_the_article(body):
             break
 
     return chunked_string.strip()
-
+uri = "mongodb+srv://tmaju002:iqnT2P1pmChIIOtr@cluster0.duieh6r.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 # Connect with MongoDB
-mongo_client = MongoClient("mongodb://127.0.0.1:27017")
+# Create a new client and connect to the server
+mongo_client = MongoClient(uri, server_api=ServerApi('1'))
+
+# Send a ping to confirm a successful connection
+try:
+    mongo_client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
+    print("Failed to connect to MongoDB.")
+# mongo_client = MongoClient("mongodb://127.0.0.1:27017")
 print("Connection Successful")
 # Create the database named "ir"
 db = mongo_client.ir
