@@ -1,14 +1,12 @@
 // === controllers/queryController.js ===
 const { stemQuery } = require('../services/stemmingService');
-const { getDocuments, getResultDocuments, getLuceneResults } = require('../services/mongoService');
-const { addBm25 } = require('../services/scoringService');
-const { getImageFilenames, getBase64Images } = require('../utils/fileUtils');
+const { getDocuments, getResultDocuments} = require('../services/mongoService');
+const { getImageFilenames} = require('../utils/fileUtils');
 const { parseHrtimeToSeconds } = require('../utils/helpers');
 const { MongoClient, ServerApiVersion } = require('mongodb');
-// const { MongoClient } = require('mongodb');
-// const URI = "mongodb://127.0.0.1:27017";
+require('dotenv').config(); // Load environment variables
 
-const URI = "mongodb+srv://tmaju002:iqnT2P1pmChIIOtr@cluster0.duieh6r.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const URI = process.env.MONGODB_URI;
 
 exports.processQuery = async (req, res) => {
     const startTime = process.hrtime();

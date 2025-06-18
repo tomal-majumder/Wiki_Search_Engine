@@ -27,11 +27,4 @@ function getImageFilenames(fullbodyDocsList) {
     return fileNameList;
 }
 
-async function getBase64Images(imageNames, basePath) {
-    const files = fs.readdirSync(basePath);
-    const matching = files.filter(f => imageNames.some(n => f.includes(n)));
-    const data = await Promise.all(matching.map(name => fs.promises.readFile(path.join(basePath, name))));
-    return data.map(buf => Buffer.from(buf).toString('base64'));
-}
-
-module.exports = { getImageFilenames, getBase64Images };
+module.exports = { getImageFilenames };
