@@ -136,43 +136,4 @@ async function getResultDocuments(client, docToScoreMapSorted) {
     return [docDataList, chunkedDataList];
 }
 
-
-function cutTheArticle(docData) {
-    //console.log(docData);
-    //console.log(docData);
-    let chunkedData = []
-    for (let i = 0; i < docData.length; i++) {
-        let body = docData[i].body;
-        let chunkedBody = body.slice(0, Math.min(3, body.length));
-        let chunkedString = "";
-        let counter = 0;
-        for (let j = 0; j < body.length; j++) {
-            for (let k = 0; k < body[j].length; k++) {
-                chunkedString += body[j][k];
-                if (body[j][k] == ".") {
-                    counter++;
-                }
-                if (counter == 2) {
-                    break
-                }
-            }
-            if (counter == 2) {
-                break;
-            }
-        }
-
-        //console.log(chunkedBody[1].length);
-        // console.log(chunkedBody);
-        let chunkedElement = {
-            "_id": docData[i]._id,
-            "docId": docData[i].docId,
-            "chunkedBody": chunkedString,
-            "filename": docData[i].filename,
-            "url": docData[i].url,
-        }
-        chunkedData.push(chunkedElement);
-    }
-    return chunkedData;
-}
-
 module.exports = { getDocuments, getResultDocuments};

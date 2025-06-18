@@ -5,9 +5,12 @@ const { getDocuments, getResultDocuments, getLuceneResults } = require('../servi
 const { addBm25 } = require('../services/scoringService');
 const { getImageFilenames, getBase64Images } = require('../utils/fileUtils');
 const { parseHrtimeToSeconds } = require('../utils/helpers');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const { spawn } = require('child_process');
+// const { MongoClient } = require('mongodb');
+// const URI = "mongodb://127.0.0.1:27017";
 
-const URI = "mongodb://127.0.0.1:27017";
+const URI = "mongodb+srv://tmaju002:iqnT2P1pmChIIOtr@cluster0.duieh6r.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 exports.processQuery = async (req, res) => {
     const startTime = process.hrtime();
@@ -34,7 +37,15 @@ exports.processQuery = async (req, res) => {
     console.log("req.params: check");
     console.log(req.query);
 
-    const client = new MongoClient(URI);
+    // const client = new MongoClient(URI);
+    // Create a MongoClient with a MongoClientOptions object to set the Stable API version
+    const client = new MongoClient(URI, {
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    }
+    });
     let fullbodyDocsList = [], chunkedBodyDocsList = [], invertedIndexList = [];
 
     try {
@@ -50,7 +61,7 @@ exports.processQuery = async (req, res) => {
         
         const baseImagePath = "/home/tmaju002/Desktop/Workspace/github/Wiki_Search_Engine/CrawledData/storage/images"
 
-        const imageResults = await getBase64Images(imageFileNames, baseImagePath);
+        // const imageResults = await getBase64Images(imageFileNames, baseImagePath);
 
         res.json({
             imageResult: imageFileNames,
