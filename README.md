@@ -19,7 +19,7 @@ Designed to run both locally and on High-Performance Computing Clusters (HPCC) u
 ├── Indexer/          # Inverted index builder (Spark scripts)
 ├── backend/          # REST API using Node.js and MongoDB
 ├── frontend/         # React UI for search and results
-├── cluster/          # Slurm job scripts and HPCC config             
+├── cluster/          # Slurm job scripts and HPCC config
 ├── scripts/ 		  # Data insertion scripts for MongoDB
 └── README.md
 ```
@@ -55,6 +55,7 @@ python crawler.py   --mode worker   --seed-urls https://en.wikipedia.org/wiki/Li
 ```
 
 #### Crawler Arguments Explained
+
 - `--mode`: Choose from `worker`, `manager`, `reset`, or `status`
 - `--seed-urls`: List of URLs to start crawling
 - `--allowed-domains`: Restrict crawling to these domains
@@ -64,6 +65,7 @@ python crawler.py   --mode worker   --seed-urls https://en.wikipedia.org/wiki/Li
 - `--max-page-limit`: Global maximum number of pages to crawl
 
 To **reset** or **check status** of crawler:
+
 ```bash
 python crawler.py --mode reset
 python crawler.py --mode status
@@ -83,12 +85,14 @@ spark-submit inverted_index.py ../crawler/storage/   --output ../IndexeData/  --
 ```
 
 #### Indexer Arguments Explained
+
 - `input_path`: Path to folder with text files
 - `--output`: Output folder path
 - `--format`: Output format (`csv`, `json`, `text`, `parquet`)
 - `--use-stemming`: Optional flag to enable stemming with NLTK
 
 ---
+
 ### 3. MongoDB Insert
 
 To insert the crawled texts and images, run the following:
@@ -100,20 +104,27 @@ python insertScript.py
 ```
 
 To insert the inverted_index output, run:
+
 ```bash
 python insertIndex.py
 ```
 
 To insert the metadata (total number of documents and average doc len for BM25 scoring) output, run:
+
 ```bash
 python metaDataInsert.py
 ```
+
 ---
 
 ### 3. Backend
 
 ```bash
 cd backend
+# Install dependencies
+pip install spacy nltk
+# Download spaCy model
+python -m spacy download en_core_web_sm
 npm install
 npm start
 ```
@@ -137,11 +148,15 @@ You can now access the search engine web interface in http://localhost.com:3000.
 ## ☁️ Running on HPCC (Cluster Mode)
 
 ### Crawler
+
 Run `cluster/distributed_crawler.sh`:
+
 ```bash
 bash distributed_crawler.sh 3 15000
 ```
+
 This will:
+
 - Start Redis
 - Reset state
 - Queue seed URLs (configured inside the `distributed_crawler.sh`)
@@ -150,10 +165,13 @@ This will:
 Here: number of workers is `3` and max page limit is `15000`.
 
 ### Indexer
+
 Submit `cluster/spark_cluster.sh`:
+
 ```bash
 sbatch spark_cluster.sh
 ```
+
 Note: Ensure paths and environment variables are correct in the script.
 
 ---
@@ -162,13 +180,13 @@ Note: Ensure paths and environment variables are correct in the script.
 
 ## Technologies Used
 
-| Layer       | Technologies                             |
-|-------------|------------------------------------------|
-| Crawling    | Python, `aiohttp`, Redis, Slurm          |
-| Indexing    | Apache Spark, TF-IDF, BM25               |
-| Backend     | Node.js, Express, MongoDB                |
-| Frontend    | React, Axios, JavaScript                 |
-| Deployment  | HPCC (Slurm), Local scripts              |
+| Layer      | Technologies                    |
+| ---------- | ------------------------------- |
+| Crawling   | Python, `aiohttp`, Redis, Slurm |
+| Indexing   | Apache Spark, TF-IDF, BM25      |
+| Backend    | Node.js, Express, MongoDB       |
+| Frontend   | React, Axios, JavaScript        |
+| Deployment | HPCC (Slurm), Local scripts     |
 
 ---
 
@@ -176,4 +194,3 @@ Note: Ensure paths and environment variables are correct in the script.
 
 - Crawled data is stored in `Crawler/storage` direcory and index files are stored in `IndexData/` (excluded from Git)
 - Image files are named as `docID-count.jpg` in `storage/images`
-

@@ -1,7 +1,12 @@
 from pymongo import MongoClient
+from pymongo.server_api import ServerApi
 
 # Connect with MongoDB
-mongo_client = MongoClient("mongodb://127.0.0.1:27017")
+# mongo_client = MongoClient("mongodb://127.0.0.1:27017")
+uri = "mongodb+srv://tmaju002:iqnT2P1pmChIIOtr@cluster0.duieh6r.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+# Connect with MongoDB
+# Create a new client and connect to the server
+mongo_client = MongoClient(uri, server_api=ServerApi('1'))
 print("Connection Successful")
 # Create the database named "ir"
 db = mongo_client.ir

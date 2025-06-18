@@ -1,5 +1,6 @@
 CrawledData/
 IndexData/
+deploy/
 # Node
 node_modules/
 react-app/node_modules/

@@ -42,12 +42,68 @@ const fs = require('fs');
 //     return [wordToDocMap, docToTfidfMapSorted, invertedIndexList];
 // }
 
+// async function getDocuments(client, stemmedWords, rankingMethod = 'tfidf') {
+//     const wordToDocMap = new Map();
+//     const docToScoreMap = new Map();
+//     let invertedIndexList = [];
+
+//     // Constants for BM25
+//     const k1 = 1.5;
+//     const b = 0.75;
+
+//     const stats = await client.db('ir').collection('metaData').findOne({});
+//     const N = stats.N;
+//     const avgdl = stats.avgdl;
+
+//     for (const curWord of stemmedWords) {
+//         let docDataList = [];
+
+//         const invertedIndexEntries = await client.db('ir')
+//             .collection('invertedIndex')
+//             .find({ word: curWord })
+//             .toArray();
+
+//         for (const entry of invertedIndexEntries) {
+//             invertedIndexList.push(entry);
+//             const df = entry.docIdList.length;
+
+//             // IDF for both TF-IDF and BM25
+//             const idf = Math.log((N - df + 0.5) / (df + 0.5) + 1); // standard BM25 IDF
+
+//             for (const doc of entry.docIdList) {
+//                 const tf = doc.tf;
+//                 const dl = doc.doc_len;
+//                 let score = 0;
+
+//                 if (rankingMethod === 'bm25') {
+//                     const numerator = tf * (k1 + 1);
+//                     const denominator = tf + k1 * (1 - b + b * (dl / avgdl));
+//                     score = idf * (numerator / denominator);
+//                 } else {
+//                     // Default: TF-IDF
+//                     score = tf * Math.log(N / df);
+//                 }
+
+//                 const prevScore = docToScoreMap.get(doc.docId) || 0;
+//                 docToScoreMap.set(doc.docId, prevScore + score);
+
+//                 docDataList.push(doc);
+//             }
+//         }
+
+//         wordToDocMap.set(curWord, docDataList);
+//     }
+
+//     const docToScoreMapSorted = new Map([...docToScoreMap.entries()].sort((a, b) => b[1] - a[1]));
+
+//     return [wordToDocMap, docToScoreMapSorted, invertedIndexList];
+// }
 async function getDocuments(client, stemmedWords, rankingMethod = 'tfidf') {
     const wordToDocMap = new Map();
     const docToScoreMap = new Map();
     let invertedIndexList = [];
 
-    // Constants for BM25
+    // BM25 constants
     const k1 = 1.5;
     const b = 0.75;
 
@@ -55,85 +111,98 @@ async function getDocuments(client, stemmedWords, rankingMethod = 'tfidf') {
     const N = stats.N;
     const avgdl = stats.avgdl;
 
-    for (const curWord of stemmedWords) {
+    // Batch query: fetch all words in one go
+    const indexEntries = await client.db('ir')
+        .collection('invertedIndex')
+        .find({ word: { $in: stemmedWords } })
+        .toArray();
+
+    for (const entry of indexEntries) {
+        const curWord = entry.word;
+        const df = entry.docIdList.length;
+        const idf = Math.log((N - df + 0.5) / (df + 0.5) + 1);
+
         let docDataList = [];
 
-        const invertedIndexEntries = await client.db('ir')
-            .collection('invertedIndex')
-            .find({ word: curWord })
-            .toArray();
+        for (const doc of entry.docIdList) {
+            const tf = doc.tf;
+            const dl = doc.doc_len;
 
-        for (const entry of invertedIndexEntries) {
-            invertedIndexList.push(entry);
-            const df = entry.docIdList.length;
-
-            // IDF for both TF-IDF and BM25
-            const idf = Math.log((N - df + 0.5) / (df + 0.5) + 1); // standard BM25 IDF
-
-            for (const doc of entry.docIdList) {
-                const tf = doc.tf;
-                const dl = doc.doc_len;
-                let score = 0;
-
-                if (rankingMethod === 'bm25') {
-                    const numerator = tf * (k1 + 1);
-                    const denominator = tf + k1 * (1 - b + b * (dl / avgdl));
-                    score = idf * (numerator / denominator);
-                } else {
-                    // Default: TF-IDF
-                    score = tf * Math.log(N / df);
-                }
-
-                const prevScore = docToScoreMap.get(doc.docId) || 0;
-                docToScoreMap.set(doc.docId, prevScore + score);
-
-                docDataList.push(doc);
+            let score = 0;
+            if (rankingMethod === 'bm25') {
+                const numerator = tf * (k1 + 1);
+                const denominator = tf + k1 * (1 - b + b * (dl / avgdl));
+                score = idf * (numerator / denominator);
+            } else {
+                score = tf * Math.log(N / df);
             }
+
+            const prev = docToScoreMap.get(doc.docId) || 0;
+            docToScoreMap.set(doc.docId, prev + score);
+            docDataList.push(doc);
         }
 
         wordToDocMap.set(curWord, docDataList);
+        invertedIndexList.push(entry);
     }
 
     const docToScoreMapSorted = new Map([...docToScoreMap.entries()].sort((a, b) => b[1] - a[1]));
-
     return [wordToDocMap, docToScoreMapSorted, invertedIndexList];
 }
 
+// async function getResultDocuments(client, docToScoreMapSorted) {
+//     let docDataList = [];
+//     let chunkedDataList = [];
+//     let i = 0;
+
+//     for (let [key, value] of docToScoreMapSorted) {
+//         // const element = invertedIndexEntries[i];
+//         // query in the wikipedia collection
+//         // input of the query is: docId
+//         // output of the query is, e.g., [{'docId': 'ucr', 'body': 'jhweh', 'filename':'ucr.txt', 'url': 'https://w.com'}]
+//         console.log(key + " = " + value);
+//         const docId = key;
+//         const docData = await client.db('ir').collection('wikipedia').find({ 'file_id': docId }).toArray();
+//         //console.log(docData);
+//         //const chunkedDocData = cutTheArticle(docData);
+//         chunckedData = []
+//         for (let i = 0; i < docData.length; i++) {
+//             let chunkedElement = {
+//                 "_id": docData[i]._id,
+//                 "docId": docData[i].docId,
+//                 "chunkedBody": docData[i].body,
+//                 "filename": docData[i].filename,
+//                 "url": docData[i].url,
+//             }
+//             chunckedData.push(chunkedElement);
+//         }
+
+//         docDataList = docDataList.concat(docData);
+//         chunkedDataList = chunkedDataList.concat(chunckedData);
+//         i++;
+//         if (i == 20) {
+//             break;
+//         }
+//     }
+//     return [docDataList, chunkedDataList];
+// }
 async function getResultDocuments(client, docToScoreMapSorted) {
-    let docDataList = [];
-    let chunkedDataList = [];
-    let i = 0;
+    const topDocIds = Array.from(docToScoreMapSorted.keys()).slice(0, 20);
 
-    for (let [key, value] of docToScoreMapSorted) {
-        // const element = invertedIndexEntries[i];
-        // query in the wikipedia collection
-        // input of the query is: docId
-        // output of the query is, e.g., [{'docId': 'ucr', 'body': 'jhweh', 'filename':'ucr.txt', 'url': 'https://w.com'}]
-        console.log(key + " = " + value);
-        const docId = key;
-        const docData = await client.db('ir').collection('wikipedia').find({ 'file_id': docId }).toArray();
-        //console.log(docData);
-        //const chunkedDocData = cutTheArticle(docData);
-        chunckedData = []
-        for (let i = 0; i < docData.length; i++) {
-            let chunkedElement = {
-                "_id": docData[i]._id,
-                "docId": docData[i].docId,
-                "chunkedBody": docData[i].body,
-                "filename": docData[i].filename,
-                "url": docData[i].url,
-            }
-            chunckedData.push(chunkedElement);
-        }
+    const docData = await client.db('ir')
+        .collection('wikipedia')
+        .find({ file_id: { $in: topDocIds } })
+        .toArray();
 
-        docDataList = docDataList.concat(docData);
-        chunkedDataList = chunkedDataList.concat(chunckedData);
-        i++;
-        if (i == 20) {
-            break;
-        }
-    }
-    return [docDataList, chunkedDataList];
+    const chunkedDataList = docData.map(doc => ({
+        _id: doc._id,
+        docId: doc.docId,
+        chunkedBody: doc.body,
+        filename: doc.filename,
+        url: doc.url
+    }));
+
+    return [docData, chunkedDataList];
 }
 
 module.exports = { getDocuments, getResultDocuments};
