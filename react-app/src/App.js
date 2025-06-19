@@ -55,10 +55,6 @@ class App extends React.Component {
   convertBufferToImage = (bufferList) => {
     const imageList = [];
     for (let i = 0; i < bufferList.length; i++) {
-      // const base64String = window.btoa(String.fromCharCode(...new Uint8Array(bufferList[i])));
-      // console.log(bufferList[i]);
-      // console.log("base64: ", base64String);
-
       var binary = '';
       var bytes = [].slice.call(new Uint8Array(bufferList[i]));
       bytes.forEach((b) => binary += String.fromCharCode(b));

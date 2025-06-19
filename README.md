@@ -119,6 +119,8 @@ python metaDataInsert.py
 
 ### 3. Backend
 
+Run the following commands to install necessary dependencies.
+
 ```bash
 cd backend
 # Install dependencies
@@ -126,10 +128,27 @@ pip install spacy nltk
 # Download spaCy model
 python -m spacy download en_core_web_sm
 npm install
+```
+
+Create a .env file
+In the `\backend` folder, create a file called `.env` and add your MongoDB connection string:
+
+```bash
+# For local MongoDB
+MONGODB_URI=mongodb://127.0.0.1:27017/ir
+
+# Or for MongoDB Atlas (Cloud)
+# MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority
+
+```
+
+▶️ Start the server
+
+```bash
 npm start
 ```
 
-The node server will start listening.
+The server will run at http://localhost:3001.
 
 ---
 
