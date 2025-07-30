@@ -11,7 +11,7 @@ const URI = process.env.MONGODB_URI;
 exports.processQuery = async (req, res) => {
     const startTime = process.hrtime();
     let query = (req.query.query || '').trim();
-    const scoringType = "tfidf"; // or "bm25"
+    const scoringType = (req.query.optionName || 'tfidf').toLowerCase();
     console.log(typeof query == "undefined");
     console.log(req.query);
 

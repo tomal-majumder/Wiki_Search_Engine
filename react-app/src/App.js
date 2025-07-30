@@ -1,5 +1,4 @@
 import React from 'react';
-import logo from './logo.svg';
 import axios from 'axios';
 import './App.css';
 import Container from 'react-bootstrap/Container';
@@ -7,25 +6,6 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import { Button } from 'react-bootstrap';
 import ClipLoader from "react-spinners/ClipLoader";
-import Image from 'react-bootstrap/Image';
-import Figure from 'react-bootstrap/Figure';
-import { PieChart } from './PieChart';
-import { BarChart } from './BarChart';
-import clusterImg from './cluster.png';
-import nonNormalizedBoxplotImg from './NonNormalized_LogReg.png';
-import nonNorm from './non-norm.png';
-import normalizedBoxplotImg1 from './Normalized_LogReg.png';
-import norm from './norm.png';
-import usageUSImg from './usage_usa.png';
-import Navbar from 'react-bootstrap/Navbar';
-import Nav from 'react-bootstrap/Nav';
-import timeTitleLen from './titleLen_vs_time.png';
-import timeTagSpec from './tagSpec_vs_time.png';
-import numTime from './numPopTag_vs_time.png';
-import bodyLenTime from './bodyLen_vs_time.png';
-import avgTime from './avgPop_vs_time.png';
-import tagPairs from './tag-pairs.png';
-import cluster50 from './cluster20_50x50_51.png';
 
 class App extends React.Component {
   constructor(props) {
@@ -39,204 +19,252 @@ class App extends React.Component {
       gotResult: false,
       searchType: "TEXT",
       firstTimeSearch: true,
-      searchTime: 0
+      searchTime: 0,
+      hasSearched: false,
+      optionName: "tfidf",
+      currentPage: 1,
+      resultsPerPage: 10,
+      showModal: false,
+      selectedImage: null
     };
-  }
 
+    this.resultsRef = React.createRef();
+  }
 
   setSearchQuery = (query) => {
-    console.log(query);
-    this.setState({
-      query: query
-    });
-    //this.getStemSearchResults(query)
-  }
-
-  convertBufferToImage = (bufferList) => {
-    const imageList = [];
-    for (let i = 0; i < bufferList.length; i++) {
-      var binary = '';
-      var bytes = [].slice.call(new Uint8Array(bufferList[i]));
-      bytes.forEach((b) => binary += String.fromCharCode(b));
-      const base64String = window.btoa(binary);
-      console.log(bufferList[i]);
-      console.log(bytes);
-      console.log(binary);
-      console.log("base64: ", base64String);
-
-      imageList.push(base64String);
-    }
-    return imageList;
+    this.setState({ query });
   }
 
   getStemSearchResults = () => {
-    console.log(this.state.query)
     const query = this.state.query.trim();
-    if (this.state.query.length === 0) {
-      return;
-    }
+    if (query.length === 0) return;
 
     this.setState({
       isLoading: true,
+      hasSearched: true,
       noAnswer: false,
       gotResult: false,
       firstTimeSearch: false,
       textResults: [],
       imageResults: [],
-      optionName: "hadoop"
-    })
+      currentPage: 1
+    });
 
-    axios.get('http://localhost:3001/query-stem', {
+    const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+
+    axios.get(`${API_BASE}/query-stem`, {
       params: {
         optionName: this.state.optionName,
         searchType: this.state.searchType,
         query: query
       }
     }).then((response) => {
-      console.log(response.data);
-
       this.setState({
         isLoading: false,
         textResults: response.data.textResult,
         imageResults: response.data.imageResult
-      })
+      });
 
       if (response.data.success === true && response.data.result.length === 0) {
-        this.setState({
-          noAnswer: true,
-          firstTimeSearch: true
-        });
+        this.setState({ noAnswer: true, firstTimeSearch: true });
       } else {
         this.setState({
           gotResult: true,
           noAnswer: false,
           searchTime: response.data.searchTime
-        })
+        });
       }
     }).catch(err => {
       this.setState({
         gotResult: false,
         noAnswer: false,
         isLoading: false
-      })
+      });
       console.log(err);
     });
   }
 
   setSearchType = (event) => {
-    console.log(event.target.value);
-    this.setState({
-      searchType: event.target.value
+    this.setState({ searchType: event.target.value, currentPage: 1 });
+  }
+
+  scrollToResults = (newPage) => {
+    this.setState({ currentPage: newPage }, () => {
+      if (this.resultsRef.current) {
+        this.resultsRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
     });
   }
 
-  // setOptions = (option) => {
-  //   console.log(option);
-  //   this.setState({
-  //     optionName: option
-  //   })
-  // }
 
-  componentDidMount() {
-    // this.getPostCountVsLocationSortedData();
-    // this.getTrendsData();
+  openModal = (filename) => {
+    this.setState({ selectedImage: filename, showModal: true });
+  }
+
+  closeModal = () => {
+    this.setState({ selectedImage: null, showModal: false });
+  }
+
+  shareImage = (url) => {
+    navigator.clipboard.writeText(url);
+    alert("Image URL copied to clipboard!");
   }
 
   render() {
+    const S3_BUCKET_URL = process.env.REACT_APP_S3_BUCKET_URL || 'https://your-bucket-name.s3.amazonaws.com';
+
+    const {
+      currentPage, resultsPerPage, searchType,
+      textResults, imageResults, showModal, selectedImage
+    } = this.state;
+
+    const results = searchType === "TEXT" ? textResults : imageResults;
+    const totalResults = results.length;
+    const startIndex = (currentPage - 1) * resultsPerPage;
+    const endIndex = startIndex + resultsPerPage;
+    const paginatedResults = results.slice(startIndex, endIndex);
+
     return (
       <div>
-        {/* <Navbar fluid className='sticky-top' bg="dark" variant="dark">
-          <Container>
-            <Navbar.Brand href="#home">BigData</Navbar.Brand>
-            <Nav className="me-auto">
-              <Nav.Link href="#languageTrends">LanguageTrends</Nav.Link>
-              <Nav.Link href="#geoDistribution">GeoDistribution</Nav.Link>
-              <Nav.Link href="#co_occurrenceFrequency">Co-occurranceFrequency</Nav.Link>
-              <Nav.Link href="#responseTimePrediction">ResponseTime</Nav.Link>
-              <Nav.Link href="#userExpertise">UserExpertise</Nav.Link>
-              <Nav.Link href="#clusteredTags">ClusteredTags</Nav.Link>
-            </Nav>
-          </Container>
-        </Navbar> */}
+        {/* <Button
+          variant="outline-secondary"
+          size="sm"
+          onClick={this.toggleDarkMode}
+          style={{ position: 'absolute', top: 10, right: 10, zIndex: 2000 }}
+        >
+          Toggle Dark Mode
+        </Button> */}
 
-        <Container className="p-3">
-          <Row>
-            {/* <Col lg="2">
-              <div>
-                <select id="options" onChange = {event => this.setOptions(event.target.value)}>
-                  <option value="hadoop">Hadoop</option>
-                  <option value="lucene">Lucene</option>
-                </select>
-              </div>
-            </Col> */}
-            <Col lg="7">
-              <div className="search">
-                <div className="form-group">
-                  {/* <label htmlFor="formGroupExampleInput">Search</label> */}
+        <Container fluid>
+          <Row className="justify-content-center">
+            <Col md="auto">
+              <h1 className="branding-title">WikiSearch IR</h1>
+              {!this.state.hasSearched && (
+                <p className="branding-subtitle">
+                  Real-time ranked retrieval over a curated Wikipedia corpus.
+                </p>
+              )}
+            </Col>
+          </Row>
+
+          <div className={`search-header ${this.state.hasSearched ? 'float-up' : ''}`}>
+            <Row className="mt-4 justify-content-center align-items-center">
+              <Col lg={8}>
+                <div className="d-flex gap-2">
                   <input
                     type="text"
-                    className="form-control"
-                    id="formGroupExampleInput"
-                    placeholder='Search'
+                    className="form-control form-control-lg flex-grow-1"
+                    placeholder="🔍 Search football or world war topics (i.e. Fifa World Cup or Dunkirk)..."
                     onChange={event => this.setSearchQuery(event.target.value)}
                   />
+                  <select
+                    className="form-select form-select-lg"
+                    onChange={(e) => this.setState({ optionName: e.target.value })}
+                  >
+                    <option value="tfidf">TF-IDF</option>
+                    <option value="bm25">BM25</option>
+                  </select>
+                  <Button className="btn-lg" variant="primary" onClick={this.getStemSearchResults}>
+                    {this.state.isLoading ? <ClipLoader size={18} color="#fff" /> : "Search"}
+                  </Button>
                 </div>
-              </div>
-            </Col>
-            <Col>
-              <Button variant="outline-secondary" onClick={this.getStemSearchResults}>Search</Button>
-            </Col>
-          </Row>
-          <Row className='mt-3'>
-            <Col lg="2">
-            </Col>
-            <Col className="searchResultCol mb-3" lg="7">
-              <div onChange={this.setSearchType.bind(this)}>
-                <Row>
-                  <Col lg="2">
-                    <input type="radio" value="TEXT" defaultChecked name="searchtype" /> <span className='mr-3' style={{ marginLeft: "20px !important" }}>Text</span>
-                  </Col>
-                  <Col lg="2">
-                    <input type="radio" value="IMAGE" name="searchtype" className='ml-3' /> <span className='ml-3'>Image</span>
-                  </Col>
-                  <Col></Col>
-                </Row>
-              </div>
-              <ClipLoader loading={this.state.isLoading} size={15} />
-              {this.state.noAnswer && !this.state.isLoading &&
-                (<div style={{ fontSize: "14px" }}>
-                  No search results found.
-                </div>)
-              }
-              {/* Show text results */}
-              {this.state.gotResult && (
-                <div className='mt-3' style={{ fontSize: "10px" }}>
-                  Search results found in <span>{this.state.searchTime}</span> seconds.
-                </div>
-              )}
-              {this.state.searchType === "TEXT" && this.state.textResults.map(result => (
-                <div className='mt-1'>
-                  <a href={result.url} target="_blank">{result.docId}</a>
-                  <div style={{ fontSize: "10px" }}>{result.chunkedBody}..</div>
-                </div>
-              ))}
-              {/* Show image results */}
-              {this.state.searchType === "IMAGE" ? 
-                this.state.imageResults.map((filename, index) => (
-                  <img 
-                    key={index}
-                    className='mr-3 mt-3 ml-3' 
-                    src={`/images/${filename}.jpg`} 
-                    alt={`img-${index}`} 
-                    width="150" 
-                    height="100" 
-                  />
-                )) 
-                : <div></div>
-              }
-            </Col>
-          </Row>
+              </Col>
+            </Row>
 
+            <Row className="mt-3 justify-content-center">
+              <Col lg={9}>
+                <div className="alert alert-info p-2 small shadow-sm">
+                  ⚠️ This is a demo search engine built over a small test corpus of football and world war content.
+                </div>
+              </Col>
+            </Row>
+
+            {this.state.hasSearched && (
+              <div className="radio-toggle mt-4 mb-3 text-center">
+                <label>
+                  <input type="radio" value="TEXT" checked={searchType === "TEXT"} onChange={this.setSearchType} />
+                  <span className="ms-2 me-4">Text</span>
+                </label>
+                <label>
+                  <input type="radio" value="IMAGE" checked={searchType === "IMAGE"} onChange={this.setSearchType} />
+                  <span className="ms-2">Image</span>
+                </label>
+              </div>
+            )}
+
+            {this.state.hasSearched && (
+              <Row ref={this.resultsRef} className="justify-content-center results-section">
+                <Col lg={8}>
+                  {this.state.gotResult && (
+                    <div className="mt-3" style={{ fontSize: "12px" }}>
+                      Search results found in <span>{this.state.searchTime}</span> seconds.
+                    </div>
+                  )}
+
+                  {this.state.noAnswer && !this.state.isLoading && (
+                    <div style={{ fontSize: "14px" }}>
+                      No search results found.
+                    </div>
+                  )}
+
+                  {searchType === "TEXT" && paginatedResults.map((result, index) => (
+                    <div key={index} className="mt-3 search-result-animated" style={{ animationDelay: `${index * 100}ms` }}>
+                      <a href={result.url} target="_blank" rel="noopener noreferrer">{result.docId}</a>
+                      <div style={{ fontSize: "12px" }}>{result.chunkedBody}..</div>
+                    </div>
+                  ))}
+
+                  {searchType === "IMAGE" && (
+                    <div className="image-grid">
+                      {paginatedResults.map((filename, index) => (
+                        <img
+                          key={index}
+                          src={`${S3_BUCKET_URL}/${filename}.jpg`}
+                          alt={`img-${index}`}
+                          onClick={() => this.openModal(filename)}
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {totalResults > 0 && (
+                    <div className="mt-4 d-flex justify-content-between align-items-center" style={{ fontSize: "13px" }}>
+                      <span>
+                        Showing {startIndex + 1}–{Math.min(endIndex, totalResults)} of {totalResults} results
+                      </span>
+                      <div>
+                        <Button className="btn-sm me-2" disabled={currentPage === 1} onClick={() => this.scrollToResults(currentPage - 1)}>
+                          Prev
+                        </Button>
+                        <Button className="btn-sm" disabled={endIndex >= totalResults} onClick={() => this.scrollToResults(currentPage + 1)}>
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </Col>
+              </Row>
+            )}
+
+            {showModal && (
+              <div className="custom-modal" onClick={this.closeModal}>
+                <img
+                  src={`${S3_BUCKET_URL}/${selectedImage}.jpg`}
+                  alt="Zoomed"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div className="modal-actions">
+                  <button onClick={() => window.open(`${S3_BUCKET_URL}/${selectedImage}.jpg`, '_blank')}>
+                    Download
+                  </button>
+                  <button onClick={() => this.shareImage(`${S3_BUCKET_URL}/${selectedImage}.jpg`)}>
+                    Share
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </Container>
       </div>
     );

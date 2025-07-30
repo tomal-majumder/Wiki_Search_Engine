@@ -54,7 +54,7 @@ async function getDocuments(client, stemmedWords, rankingMethod = 'tfidf') {
 }
 
 async function getResultDocuments(client, docToScoreMapSorted) {
-    const topDocIds = Array.from(docToScoreMapSorted.keys()).slice(0, 20);
+    const topDocIds = Array.from(docToScoreMapSorted.keys()).slice(0, 50);
 
     const docData = await client.db('ir')
         .collection('wikipedia')

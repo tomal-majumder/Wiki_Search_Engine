@@ -1,44 +1,211 @@
-.App {
+/* === Base === */
+body {
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+:root {
+  --bg-color: #fff;
+  --text-color: #111;
+  --card-bg: #f8f9fa;
+}
+
+body.dark-mode {
+  --bg-color: #121212;
+  --text-color: #eee;
+  --card-bg: #1e1e1e;
+}
+
+.branding-title {
+  font-size: 2.8rem;
+  font-weight: 700;
   text-align: center;
+  margin-top: 40px;
+  color: var(--text-color);
 }
 
-.img-fluid {
-  max-width: 90%; /* or to whatever you want here */
-  height: 100;
-  max-height: 200; /* or to whatever you want here */
+.branding-subtitle {
+  text-align: center;
+  font-size: 16px;
+  color: #999;
+  margin-bottom: 30px;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+/* === Search Header === */
+.search-header {
   display: flex;
   flex-direction: column;
   align-items: center;
+  transition: transform 0.8s ease;
+  padding-top: 8vh;
+  padding-bottom: 4vh;
+}
+
+.search-header.float-up {
+  transform: translateY(-80px);
+  padding-top: 2vh;
+  margin-top: 60px;
+}
+
+/* === Search Row Container === */
+.search-row {
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 20px;
 }
 
-.App-link {
-  color: #61dafb;
+/* === Inputs, Selects, Buttons === */
+input.form-control-lg, select.form-select-lg {
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid #ccc;
 }
 
-@keyframes App-logo-spin {
+input.form-control-lg {
+  width: 800px;
+  max-width: 100%;
+}
+
+select.form-select-lg {
+  width: 180px;
+  max-width: 100%;
+}
+
+button.btn-lg, button.btn-sm {
+  font-size: 1rem;
+  padding: 0.75rem 1.2rem;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  transition: background-color 0.2s;
+}
+
+button.btn-lg:hover, button.btn-sm:hover {
+  background-color: #0069d9;
+}
+
+/* === Radio Buttons === */
+.mode-toggle {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.mode-toggle input[type="radio"] {
+  transform: scale(1.2);
+  margin-right: 5px;
+}
+
+.mode-toggle label {
+  font-size: 1rem;
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+/* === Notice === */
+.alert-info {
+  background-color: #eaf4ff;
+  border-left: 5px solid #007bff;
+  font-size: 13px;
+  padding: 10px;
+}
+
+/* === Results === */
+.search-result-animated {
+  animation: floatUpFade 0.5s ease forwards;
+  opacity: 0;
+}
+
+@keyframes floatUpFade {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(20px);
   }
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
   }
+}
+
+.results-section {
+  animation: fadeIn 0.6s ease forwards;
+  opacity: 0;
+  margin-top: 20px;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* === Image Grid === */
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.image-grid img {
+  object-fit: cover;
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.image-grid img:hover {
+  transform: scale(1.05);
+}
+
+/* === Zoom Modal === */
+.custom-modal {
+  z-index: 1050;
+  background-color: rgba(0, 0, 0, 0.75);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.custom-modal img {
+  max-height: 80vh;
+  max-width: 90vw;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.modal-actions button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+}
+
+.modal-actions button:hover {
+  background-color: #0056b3;
 }
