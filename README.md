@@ -24,6 +24,10 @@ This is a demo deployment running on a limited test dataset (focused on football
 
 ---
 
+### 🎥 Demo Preview
+
+![Demo GIF](assets/demo.gif)
+
 ## Project Structure
 
 ```
