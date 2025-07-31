@@ -11,6 +11,19 @@ Designed to run both locally and on High-Performance Computing Clusters (HPCC) u
 
 ---
 
+## 🚀 Live Demo
+
+> 🧪 **Demo URL:** [http://18.191.52.209/](http://18.191.52.209/)
+
+This is a demo deployment running on a limited test dataset (focused on football and world war content) due to compute and storage constraints.
+
+⚠️ **Disclaimer**:
+
+- The search results and ranking quality do not reflect full-scale system performance.
+- Built and deployed using Docker on an EC2 t2.micro instance for demonstration purposes only.
+
+---
+
 ## Project Structure
 
 ```

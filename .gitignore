@@ -1,6 +1,9 @@
 CrawledData/
 IndexData/
 deploy/
+!/.github/
+!/.github/workflows/
+
 # Node
 node_modules/
 react-app/node_modules/
