@@ -25,7 +25,8 @@ class App extends React.Component {
       currentPage: 1,
       resultsPerPage: 10,
       showModal: false,
-      selectedImage: null
+      selectedImage: null,
+      currentImageIndex: 0
     };
 
     this.resultsRef = React.createRef();
@@ -95,14 +96,35 @@ class App extends React.Component {
       }
     });
   }
+    openModal = (filename) => {
+      window.scrollTo(0, 0); 
+      const index = this.state.imageResults.indexOf(filename);
+      this.setState({ selectedImage: filename, showModal: true, currentImageIndex: index });
+    };
 
-
-  openModal = (filename) => {
-    this.setState({ selectedImage: filename, showModal: true });
-  }
 
   closeModal = () => {
     this.setState({ selectedImage: null, showModal: false });
+  }
+
+  prevImage = () => {
+    this.setState(prev => {
+      const newIndex = (prev.currentImageIndex - 1 + prev.imageResults.length) % prev.imageResults.length;
+      return {
+        selectedImage: prev.imageResults[newIndex],
+        currentImageIndex: newIndex
+      };
+    });
+  }
+
+  nextImage = () => {
+    this.setState(prev => {
+      const newIndex = (prev.currentImageIndex + 1) % prev.imageResults.length;
+      return {
+        selectedImage: prev.imageResults[newIndex],
+        currentImageIndex: newIndex
+      };
+    });
   }
 
   shareImage = (url) => {
@@ -126,14 +148,6 @@ class App extends React.Component {
 
     return (
       <div>
-        {/* <Button
-          variant="outline-secondary"
-          size="sm"
-          onClick={this.toggleDarkMode}
-          style={{ position: 'absolute', top: 10, right: 10, zIndex: 2000 }}
-        >
-          Toggle Dark Mode
-        </Button> */}
 
         <Container fluid>
           <Row className="justify-content-center">
@@ -149,7 +163,7 @@ class App extends React.Component {
 
           <div className={`search-header ${this.state.hasSearched ? 'float-up' : ''}`}>
             <Row className="mt-4 justify-content-center align-items-center">
-              <Col lg={8}>
+              <Col lg={10}>
                 <div className="d-flex gap-2">
                   <input
                     type="text"
@@ -174,7 +188,7 @@ class App extends React.Component {
             <Row className="mt-3 justify-content-center">
               <Col lg={9}>
                 <div className="alert alert-info p-2 small shadow-sm">
-                  ⚠️ This is a demo search engine built over a small test corpus of football and world war content.
+                  ⚠️ This demo search engine runs on a limited test dataset due to resource constraints. Ranking result does not represent full-scale performance.
                 </div>
               </Col>
             </Row>
@@ -221,12 +235,14 @@ class App extends React.Component {
                           key={index}
                           src={`${S3_BUCKET_URL}/${filename}.jpg`}
                           alt={`img-${index}`}
+                          className="image-item"
                           onClick={() => this.openModal(filename)}
                           onError={(e) => { e.target.style.display = 'none'; }}
                         />
                       ))}
                     </div>
                   )}
+
 
                   {totalResults > 0 && (
                     <div className="mt-4 d-flex justify-content-between align-items-center" style={{ fontSize: "13px" }}>
@@ -247,13 +263,18 @@ class App extends React.Component {
               </Row>
             )}
 
-            {showModal && (
-              <div className="custom-modal" onClick={this.closeModal}>
+          {showModal && (
+            <div className="image-modal" onClick={this.closeModal}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <span className="modal-close" onClick={this.closeModal}>&times;</span>
+
+                <button className="modal-nav modal-prev" onClick={this.prevImage}>&lt;</button>
                 <img
                   src={`${S3_BUCKET_URL}/${selectedImage}.jpg`}
                   alt="Zoomed"
-                  onClick={(e) => e.stopPropagation()}
                 />
+                <button className="modal-nav modal-next" onClick={this.nextImage}>&gt;</button>
+
                 <div className="modal-actions">
                   <button onClick={() => window.open(`${S3_BUCKET_URL}/${selectedImage}.jpg`, '_blank')}>
                     Download
@@ -263,7 +284,10 @@ class App extends React.Component {
                   </button>
                 </div>
               </div>
-            )}
+            </div>
+          )}
+
+            
           </div>
         </Container>
       </div>

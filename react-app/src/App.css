@@ -152,60 +152,120 @@ button.btn-lg:hover, button.btn-sm:hover {
 /* === Image Grid === */
 .image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.image-grid img {
-  object-fit: cover;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+  padding: 20px;
   width: 100%;
-  height: 120px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.2s ease;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
-.image-grid img:hover {
+.image-item {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  object-position: top center;  /* ⬅️ this is the key line */
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+}
+
+.image-item:hover {
   transform: scale(1.05);
 }
 
 /* === Zoom Modal === */
-.custom-modal {
-  z-index: 1050;
-  background-color: rgba(0, 0, 0, 0.75);
-  position: fixed;
+/* ... keep your existing styles above ... */
+
+/* === Additions to existing App.css === */
+.image-modal {
+  position: fixed; /* <-- important */
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;     /* vertical center */
+  justify-content: center; /* horizontal center */
+  z-index: 999;
+  overflow: auto;
+}
+
+.image-modal img {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+  animation: zoomIn 0.3s ease-in-out;
+  object-position: top center;
+  object-fit: contain;
+}
+
+.modal-content {
+  position: relative;
+  background-color: transparent;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 90vw;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
 }
 
-.custom-modal img {
-  max-height: 80vh;
-  max-width: 90vw;
-  border-radius: 8px;
-  margin-bottom: 1rem;
+
+
+.modal-close {
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  font-size: 2.5rem;
+  color: white;
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 .modal-actions {
   display: flex;
-  gap: 10px;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
 }
 
 .modal-actions button {
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 8px 14px;
   font-size: 14px;
+  border: none;
   background-color: #007bff;
   color: white;
-  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
 .modal-actions button:hover {
-  background-color: #0056b3;
+  background-color: #005ecb;
+}
+
+.modal-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 2rem;
+  color: white;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+  z-index: 1001;
+}
+
+.modal-prev {
+  left: -60px;
+}
+
+.modal-next {
+  right: -60px;
 }
