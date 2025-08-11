@@ -7,8 +7,8 @@ deploy/
 # Node
 node_modules/
 react-app/node_modules/
-react-app/package-lock.json
 react-app/public/images/
+react-app/build/
 
 # Python
 __pycache__/
