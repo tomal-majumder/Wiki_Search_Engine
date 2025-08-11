@@ -168,7 +168,7 @@ class App extends React.Component {
                   <input
                     type="text"
                     className="form-control form-control-lg flex-grow-1"
-                    placeholder="🔍 Search football or world war topics (i.e. Fifa World Cup or Dunkirk)..."
+                    placeholder="🔍 Search football or world war topics (i.e. Fifa World Cup or Battle of the Bulge)..."
                     onChange={event => this.setSearchQuery(event.target.value)}
                   />
                   <select
