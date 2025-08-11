@@ -87,6 +87,8 @@ jobs:
         working-directory: react-app
         env:
           CI: true
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL}}
+          REACT_APP_S3_BUCKET_URL: ${{ secrets.REACT_APP_S3_BUCKET_URL }}
           NODE_OPTIONS: --openssl-legacy-provider
         run: |
           npm ci
