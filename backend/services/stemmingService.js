@@ -1,33 +1,18 @@
-const { spawn } = require('child_process');
+const natural = require('natural');
 
-exports.stemQuery = async (query) => {
-    return new Promise((resolve, reject) => {
-        const py = spawn('python3', ['utils/tokenizeQuery.py']);
+// Tokenizer + Porter stemmer (fast & common in IR systems)
+const tokenizer = new natural.WordTokenizer();
+const stemmer = natural.PorterStemmer;
 
-        let output = '';
-        let error = '';
+// Basic normalization: lowercase + strip punctuation (keeps numbers/letters/spaces)
+function normalize(text) {
+  return text.replace(/[^A-Za-z0-9\s]/g, ' ').toLowerCase();
+}
 
-        py.stdout.on('data', (data) => {
-            output += data.toString();
-        });
-
-        py.stderr.on('data', (data) => {
-            error += data.toString();
-        });
-
-        py.on('close', (code) => {
-            if (code !== 0) {
-                return reject(`Python process exited with code ${code}\n${error}`);
-            }
-            try {
-                const tokens = JSON.parse(output);
-                resolve(tokens);  // returns array of preprocessed words
-            } catch (err) {
-                reject(`Failed to parse Python output: ${output}`);
-            }
-        });
-
-        py.stdin.write(query + '\n');
-        py.stdin.end();
-    });
+// Exported API identical to before (async + returns array of stems)
+exports.stemQuery = async (raw) => {
+  const tokens = tokenizer.tokenize(normalize(raw));
+  // If you want to drop tiny tokens: tokens = tokens.filter(t => t.length > 1);
+  return tokens.map(t => stemmer.stem(t));
 };
+

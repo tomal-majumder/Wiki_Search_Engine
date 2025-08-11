@@ -1,69 +1,65 @@
 // === controllers/queryController.js ===
 const { stemQuery } = require('../services/stemmingService');
-const { getDocuments, getResultDocuments} = require('../services/mongoService');
-const { getImageFilenames} = require('../utils/fileUtils');
+const { getDocuments, getResultDocuments } = require('../services/mongoService');
+const { getImageFilenames } = require('../utils/fileUtils');
 const { parseHrtimeToSeconds } = require('../utils/helpers');
-const { MongoClient, ServerApiVersion } = require('mongodb');
-require('dotenv').config(); // Load environment variables
+const { getClient } = require('../services/mongoClient');
+const { startSpan, sysSnapshot } = require('../utils/profiler');
 
-const URI = process.env.MONGODB_URI;
+require('dotenv').config();
 
 exports.processQuery = async (req, res) => {
     const startTime = process.hrtime();
+    const measures = [];
+    const endTotal = startSpan('total_request', measures);
+
+    // validate input
+    const endValidate = startSpan('validate_input', measures);
     let query = (req.query.query || '').trim();
     const scoringType = (req.query.optionName || 'tfidf').toLowerCase();
-    console.log(typeof query == "undefined");
-    console.log(req.query);
 
-    if (typeof query == "undefined") {
-        return res.send({
-            "success": false,
-            "result": []
-        })
-    } else if (query.trim().length == "") {
-        return res.send({
-            "success": false,
-            "result": []
-        })
+    if (!query || query.length === 0) {
+    endValidate();
+    endTotal();
+    return res.status(400).json({ success: false, result: [], error: 'Empty query' });
     }
+    endValidate();
 
-    query = query.trim();
+    // pooled Mongo client (already connected)
+    const endConnectToDB = startSpan('connect_to_db', measures);
+    const client = await getClient();
+    endConnectToDB();
 
-    console.log("req.params: check");
-    console.log(req.query);
-
-    // const client = new MongoClient(URI);
-    // Create a MongoClient with a MongoClientOptions object to set the Stable API version
-    const client = new MongoClient(URI, {
-    serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-    }
-    });
-    let fullbodyDocsList = [], chunkedBodyDocsList = [], invertedIndexList = [];
+    let fullbodyDocsList = [], chunkedBodyDocsList = [];
 
     try {
-        const stemmedWords = await stemQuery(query);
+    const endStem = startSpan('stem_query', measures);
+    const stemmedWords = await stemQuery(query);
+    endStem();
 
-        await client.connect();
+    const endGetDocs = startSpan('get_documents', measures);
+    const docToScoreMapSorted = await getDocuments(client, stemmedWords, scoringType);
+    endGetDocs();
 
-        const [wordToDocMap, docToBm25MapSorted, invertedIndexList] = await getDocuments(client, stemmedWords, scoringType);
-        // invertedIndexList = indexList;
+    const endFetchResults = startSpan('fetch_results', measures);
+    [fullbodyDocsList, chunkedBodyDocsList] = await getResultDocuments(client, docToScoreMapSorted);
+    endFetchResults();
 
-        [fullbodyDocsList, chunkedBodyDocsList] = await getResultDocuments(client, docToBm25MapSorted);
-        const imageFileNames = getImageFilenames(fullbodyDocsList);
-        
-        res.json({
-            imageResult: imageFileNames,
-            textResult: chunkedBodyDocsList,
-            searchTime: parseHrtimeToSeconds(process.hrtime(startTime))
-        });
+    const endGetImages = startSpan('get_image_filenames', measures);
+    const imageFileNames = getImageFilenames(fullbodyDocsList);
+    endGetImages();
 
+    endTotal();
+
+    res.json({
+        imageResult: imageFileNames,
+        textResult: chunkedBodyDocsList,
+        searchTime: parseHrtimeToSeconds(process.hrtime(startTime)),
+        profile: { measures, sysSnapshot: sysSnapshot() },
+    });
     } catch (err) {
         console.error(err);
-        res.status(500).send("Server Error");
-    } finally {
-        await client.close();
+        endTotal();
+        res.status(500).send('Server Error');
     }
 };
