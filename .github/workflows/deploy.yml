@@ -6,106 +6,169 @@ on:
     paths:
       - "backend/**"
       - "react-app/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Skip SCP/SSH to EC2 (build only)"
+        type: boolean
+        default: false
+      force_backend:
+        description: "Force backend build even if no backend files changed"
+        type: boolean
+        default: false
+      force_frontend:
+        description: "Force frontend build even if no frontend files changed"
+        type: boolean
+        default: false
+      skip_ssh_test:
+        description: "Skip SSH connectivity test (not recommended)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  # --- 1) SSH connectivity test (always runs; can be no-op if skipped) ---
+  test-ssh:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Maybe skip SSH test
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.skip_ssh_test == 'true' }}
+        run: echo "Skipping SSH test per user input."
 
-      # === Detect which folder changed ===
-      - name: Check if backend changed
-        id: backend
-        run: echo "changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q '^backend/' && echo true || echo false)" >> $GITHUB_OUTPUT
-
-      - name: Check if frontend changed
-        id: frontend
-        run: echo "changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q '^react-app/' && echo true || echo false)" >> $GITHUB_OUTPUT
-
-      # === Build React frontend ===
-      - name: Build React frontend
-        if: steps.frontend.outputs.changed == 'true'
-        run: |
-          cd react-app
-          npm install
-          npm run build
-
-      # === Copy React build to EC2 ===
-      - name: Copy React build folder to EC2
-        if: steps.frontend.outputs.changed == 'true'
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "react-app/build"
-          target: "~/react-frontend"
-
-      # === Restart Frontend Container ===
-      - name: Restart frontend Docker container on EC2
-        if: steps.frontend.outputs.changed == 'true'
+      - name: SSH to EC2 and print system info
+        if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_ssh_test == 'true') }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            echo "✅ SSH connected successfully"
+            uname -a
+            docker --version || true
+
+  # --- 2) Build & Deploy (waits for SSH test) ---
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test-ssh]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Detect changes (frontend/backend)
+      - name: Determine changed parts
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'react-app/**'
+            backend:
+              - 'backend/**'
+
+      # ------------- FRONTEND -------------
+      - name: Setup Node (frontend)
+        if: ${{ steps.changes.outputs.frontend == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_frontend == 'true') }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20" # using legacy OpenSSL workaround below
+          cache: "npm"
+          cache-dependency-path: "react-app/package-lock.json"
+
+      - name: Build React app
+        if: ${{ steps.changes.outputs.frontend == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_frontend == 'true') }}
+        working-directory: react-app
+        env:
+          CI: true
+          NODE_OPTIONS: --openssl-legacy-provider
+        run: |
+          npm ci
+          npm run build
+
+      - name: DRY RUN — skipping frontend deploy
+        if: ${{ (steps.changes.outputs.frontend == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_frontend == 'true')) && (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true') }}
+        run: echo "Would SCP build/ and restart nginx container on EC2 (dry_run=true)."
+
+      - name: Copy React build to EC2
+        if: ${{ (steps.changes.outputs.frontend == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_frontend == 'true')) && !(github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true') }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "react-app/build/*"
+          target: "~/react-frontend/build"
+          rm: true
+
+      - name: Rebuild + restart Frontend on EC2
+        if: ${{ (steps.changes.outputs.frontend == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_frontend == 'true')) && !(github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true') }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
             cd ~/react-frontend
-            echo '
+            cat > Dockerfile <<'EOF'
             FROM nginx:alpine
             COPY build/ /usr/share/nginx/html
             EXPOSE 80
             CMD ["nginx", "-g", "daemon off;"]
-            ' > Dockerfile
-
+            EOF
             docker stop wiki-frontend-container || true
             docker rm wiki-frontend-container || true
             docker build -t wiki-frontend .
-            docker run -d -p 80:80 --name wiki-frontend-container wiki-frontend
+            docker run -d -p 80:80 --name wiki-frontend-container --restart unless-stopped wiki-frontend
 
-      # === Build and Save Backend Docker Image ===
-      - name: Build backend Docker image
-        if: steps.backend.outputs.changed == 'true'
+      # ------------- BACKEND -------------
+      - name: Build backend Docker image (on runner)
+        if: ${{ steps.changes.outputs.backend == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_backend == 'true') }}
+        working-directory: backend
         run: |
-          cd backend
           docker build -t wiki-backend .
-          docker save wiki-backend | gzip > backend-image.tar.gz
+          docker save wiki-backend | gzip > ../backend-image.tar.gz
 
-      # === Copy backend files and image to EC2 ===
-      - name: Copy backend image and env to EC2
-        if: steps.backend.outputs.changed == 'true'
+      - name: DRY RUN — skipping backend deploy
+        if: ${{ (steps.changes.outputs.backend == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_backend == 'true')) && (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true') }}
+        run: echo "Would SCP backend image and restart container on EC2 (dry_run=true)."
+
+      - name: Copy backend image to EC2
+        if: ${{ (steps.changes.outputs.backend == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_backend == 'true')) && !(github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true') }}
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: |
-            backend-image.tar.gz
+          source: "backend-image.tar.gz"
           target: "~/backend"
 
-      # === Restart Backend Container ===
-      - name: Restart backend container on EC2
-        if: steps.backend.outputs.changed == 'true'
+      - name: Restart backend on EC2
+        if: ${{ (steps.changes.outputs.backend == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_backend == 'true')) && !(github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true') }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -euo pipefail
             cd ~/backend
-
-            # Create .env file
-            echo '
-            NODE_ENV=production
-            PORT=3001
-            MONGODB_URI=${{ secrets.MONGODB_URI }}
-            DEBUG=searchengine:*
-            ' > .env
-
             docker stop wiki-backend-container || true
             docker rm wiki-backend-container || true
             docker load < backend-image.tar.gz
-            docker run -d --env-file .env -p 3001:3001 --name wiki-backend-container wiki-backend
-            rm backend-image.tar.gz
+            rm -f backend-image.tar.gz
+            docker run -d --name wiki-backend-container \
+              -p 3001:3001 \
+              --restart unless-stopped \
+              -e NODE_ENV=production \
+              -e PORT=3001 \
+              -e MONGODB_URI='${{ secrets.MONGODB_URI }}' \
+              -e DEBUG='searchengine:*' \
+              wiki-backend
