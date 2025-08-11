@@ -78,7 +78,7 @@ jobs:
         if: ${{ steps.changes.outputs.frontend == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_frontend == 'true') }}
         uses: actions/setup-node@v4
         with:
-          node-version: "20" # using legacy OpenSSL workaround below
+          node-version: "18" # using legacy OpenSSL workaround below
           cache: "npm"
           cache-dependency-path: "react-app/package-lock.json"
 
@@ -105,6 +105,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "react-app/build/*"
           target: "~/react-frontend/build"
+          strip_components: 2
           rm: true
 
       - name: Rebuild + restart Frontend on EC2
